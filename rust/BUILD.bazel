@@ -10,6 +10,9 @@ RUST_TARGETS = [
     "//examples/glossary/consumer:consumer_test",
     "//examples/glossary/provider",
     "//examples/glossary/provider:provider_test",
+    "//examples/refs/api",
+    "//examples/refs/api:api_no_tokio",
+    "//examples/refs/api:refs_test",
     "//rust/protocontract",
     "//rust/protocontract:protocontract_no_tokio",
     "//rust/protocontract:protocontract_no_tokio_test",
@@ -34,6 +37,8 @@ rust_clippy_test(
 # which rustfmt would rewrite and which the generate checks guard instead.
 GENERATED_SRCS = [
     "//examples/glossary/api",
+    "//examples/refs/api",
+    "//examples/refs/api:api_no_tokio",
     "//rust/golden",
     "//rust/golden:golden_no_tokio",
 ]

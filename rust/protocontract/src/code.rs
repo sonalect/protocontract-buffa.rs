@@ -166,6 +166,14 @@ pub enum RuntimeCode {
     /// The runtime dropped the call before it finished, typically because
     /// it is shutting down.
     Cancelled = 3,
+    /// A reference to a service holds no implementation: it was never
+    /// given one, or it was decoded (a reference does not survive
+    /// encoding).
+    Unbound = 4,
+    /// An async implementation was asked for in the blocking form where no
+    /// tokio runtime could run it: outside a runtime, or in a build without
+    /// the `tokio` feature.
+    NoRuntime = 5,
 }
 
 impl ErrorCode for RuntimeCode {
@@ -178,6 +186,8 @@ impl ErrorCode for RuntimeCode {
             1 => Some(RuntimeCode::Panicked),
             2 => Some(RuntimeCode::CannotBlock),
             3 => Some(RuntimeCode::Cancelled),
+            4 => Some(RuntimeCode::Unbound),
+            5 => Some(RuntimeCode::NoRuntime),
             _ => None,
         }
     }
@@ -187,6 +197,8 @@ impl ErrorCode for RuntimeCode {
             RuntimeCode::Panicked => "PANICKED",
             RuntimeCode::CannotBlock => "CANNOT_BLOCK",
             RuntimeCode::Cancelled => "CANCELLED",
+            RuntimeCode::Unbound => "UNBOUND",
+            RuntimeCode::NoRuntime => "NO_RUNTIME",
         }
     }
 }
@@ -220,6 +232,8 @@ mod tests {
             RuntimeCode::Panicked,
             RuntimeCode::CannotBlock,
             RuntimeCode::Cancelled,
+            RuntimeCode::Unbound,
+            RuntimeCode::NoRuntime,
         ] {
             assert_eq!(RuntimeCode::from_i32(code.to_i32()), Some(code));
             assert_eq!(Code::of(code).get::<RuntimeCode>(), Some(code));

@@ -7,7 +7,7 @@ use crate::paths::check_absolute_path;
 /// unknown one.
 const SUPPORTED: &str = "buffa_module=<rust_path>, extern_path=<proto>=<rust_path>, \
      file_per_package, element_memory_limit=<bytes|unlimited>, runtime=<rust_path>, \
-     gate_tokio_feature, gate_tokio_feature=<name>";
+     gate_tokio_feature, gate_tokio_feature=<name>, json=<true|false>, validate=<true|false>";
 
 /// The Cargo feature `gate_tokio_feature` names when it has no value.
 const DEFAULT_TOKIO_FEATURE: &str = "tokio";
@@ -29,6 +29,12 @@ pub(crate) struct Options {
     /// The Cargo feature that gates the `Offload` and `Blocking` impls, if
     /// any.
     pub(crate) tokio_gate: Option<String>,
+    /// buffa runs with `json=true`: the messages derive serde, so a
+    /// reference type implements it too.
+    pub(crate) json: bool,
+    /// `protoc-gen-protovalidate-buffa` runs too: it calls `validate()` on
+    /// every message field, so a reference type implements `Validate`.
+    pub(crate) validate: bool,
 }
 
 impl Options {
@@ -39,6 +45,8 @@ impl Options {
             file_per_package: false,
             runtime: DEFAULT_RUNTIME.to_string(),
             tokio_gate: None,
+            json: false,
+            validate: false,
         };
         let mut runtime_given = false;
         let parameter = parameter.unwrap_or_default();
@@ -79,6 +87,10 @@ impl Options {
                     }
                     options.tokio_gate = Some(feature.to_string());
                 }
+                ("json", Some("true")) => options.json = true,
+                ("json", Some("false")) => options.json = false,
+                ("validate", Some("true")) => options.validate = true,
+                ("validate", Some("false")) => options.validate = false,
                 // `buffa_codegen::decode_request` read and applied it while
                 // decoding the request; nothing is left to do here.
                 (buffa_codegen::ELEMENT_MEMORY_LIMIT_OPT, Some(_)) => {}

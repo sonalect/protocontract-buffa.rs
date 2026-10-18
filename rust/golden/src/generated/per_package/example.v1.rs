@@ -56,6 +56,10 @@ impl DynCounterAsync {
     pub fn from_arc<T: CounterAsync + 'static>(service: ::std::sync::Arc<T>) -> Self {
         Self { inner: service }
     }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
+    }
 }
 impl CounterAsync for DynCounterAsync {
     fn add(
@@ -254,6 +258,10 @@ impl DynFeedAsync {
     /// Put a shared `service` behind dynamic dispatch.
     pub fn from_arc<T: FeedAsync + 'static>(service: ::std::sync::Arc<T>) -> Self {
         Self { inner: service }
+    }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
     }
 }
 impl FeedAsync for DynFeedAsync {
@@ -726,6 +734,10 @@ impl DynGreeterAsync {
     pub fn from_arc<T: GreeterAsync + 'static>(service: ::std::sync::Arc<T>) -> Self {
         Self { inner: service }
     }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
+    }
 }
 impl GreeterAsync for DynGreeterAsync {
     fn greet(
@@ -1170,6 +1182,10 @@ impl DynToolsServiceAsync {
         service: ::std::sync::Arc<T>,
     ) -> Self {
         Self { inner: service }
+    }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
     }
 }
 impl ToolsServiceAsync for DynToolsServiceAsync {

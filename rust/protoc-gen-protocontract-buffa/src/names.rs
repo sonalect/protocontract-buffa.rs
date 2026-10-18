@@ -12,6 +12,7 @@ use buffa_codegen::generated::descriptor::{FileDescriptorProto, ServiceDescripto
 use heck::{ToSnakeCase, ToUpperCamelCase};
 
 use crate::Error;
+use crate::references::Reference;
 
 /// The names protocontract-buffa gives the items of one service.
 pub(crate) struct ServiceNames {
@@ -235,6 +236,52 @@ pub(crate) fn check_clashes(files: &[FileDescriptorProto], package: &str) -> Res
                         )));
                     }
                 }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Fail if the module of a reference type in `package` has the name of
+/// another module there: another reference's, or the one buffa gives a
+/// message for its nested types.
+pub(crate) fn check_reference_clashes(
+    files: &[FileDescriptorProto],
+    package: &str,
+    references: &[Reference],
+) -> Result<(), Error> {
+    let mut taken: HashMap<String, String> = HashMap::new();
+    for file in files
+        .iter()
+        .filter(|file| file.package.as_deref().unwrap_or_default() == package)
+    {
+        for message in &file.message_type {
+            if message.nested_type.is_empty() && message.enum_type.is_empty() {
+                continue;
+            }
+            let name = message.name.as_deref().unwrap_or_default();
+            taken.insert(
+                buffa_codegen::idents::escape_mod_ident(&name.to_snake_case()),
+                format!("the module of message {}", qualified(package, name)),
+            );
+        }
+    }
+    let in_package = references
+        .iter()
+        .filter(|reference| reference.fqn[1..].rsplit_once('.').map_or("", |(p, _)| p) == package);
+    for reference in in_package {
+        let origin = format!("the module of reference {}", &reference.fqn[1..]);
+        match taken.entry(reference.module.clone()) {
+            Entry::Vacant(entry) => {
+                entry.insert(origin);
+            }
+            Entry::Occupied(entry) => {
+                return Err(Error::new(format!(
+                    "{origin}: `{}` is also {} in the same Rust module; rename one of them in \
+                     the proto",
+                    entry.key(),
+                    entry.get()
+                )));
             }
         }
     }

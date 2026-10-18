@@ -265,6 +265,14 @@ impl Method<'_> {
         quote!(#signature { #body })
     }
 
+    /// A shared blocking implementation (`Arc<dyn <S>Sync>` in field `0`):
+    /// call it.
+    pub(crate) fn shared_impl(&self) -> TokenStream {
+        let ident = &self.ident;
+        let (signature, argument) = (self.sync_signature(), self.argument());
+        quote!(#signature { self.0.#ident(#argument) })
+    }
+
     /// `Blocking<T>`: block on the async method.
     pub(crate) fn blocking_impl(&self) -> TokenStream {
         let (ident, async_trait, parameter) = (&self.ident, self.async_trait, &self.parameter);

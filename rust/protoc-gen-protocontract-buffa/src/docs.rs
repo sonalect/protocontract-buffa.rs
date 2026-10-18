@@ -6,10 +6,18 @@ use quote::quote;
 
 use crate::sanitize::sanitize_comment;
 
+/// `FileDescriptorProto.message_type` field number.
+const FILE_MESSAGE_TYPE: i32 = 4;
 /// `FileDescriptorProto.service` field number.
 const FILE_SERVICE: i32 = 6;
 /// `ServiceDescriptorProto.method` field number.
 const SERVICE_METHOD: i32 = 2;
+
+/// The sanitized comment above (or after) top-level message `message` of
+/// `file`.
+pub(crate) fn message_comment(file: &FileDescriptorProto, message: usize) -> Option<String> {
+    comment_at(file, &[FILE_MESSAGE_TYPE, index(message)?])
+}
 
 /// The sanitized comment above (or after) service `service` of `file`.
 pub(crate) fn service_comment(file: &FileDescriptorProto, service: usize) -> Option<String> {

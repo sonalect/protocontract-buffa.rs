@@ -8,8 +8,35 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-18
+
+### Added
+
+- References to a service. An empty message marked
+  `option (protocontract.v1.service) = "pkg.Service";` stands for an
+  implementation of that service: the plugin emits a type for it
+  (`<module>::<Name>`, e.g. `clock_ref::ClockRef`) that holds the
+  implementation in the form it was given, and buffa maps the message to it
+  with an `extern_path`, so a field, a request, or a reply can carry an
+  implementation. The receiver takes the form it needs with `to_sync`,
+  `to_async_inline`, or `to_async_offload`. A reference does not survive
+  encoding: decoded it is `RuntimeCode::Unbound` when used, and it has no
+  JSON form. The option is declared in `protocontract/v1/options.proto`,
+  shipped in the `protocontract` crate under `proto/`.
+- Plugin parameters `json=<true|false>` and `validate=<true|false>`: with
+  buffa's `json=true`, reference types get serde impls too; next to
+  `protoc-gen-protovalidate-buffa`, they implement `Validate` (always
+  valid), which it calls on every message field.
+- `RuntimeCode::Unbound` and `RuntimeCode::NoRuntime`.
+- Every `Dyn<Service>Async` handle has `ptr_eq`: whether two handles hold
+  the same implementation.
+- `examples/refs`: a reference in a field, a list, a request, and a reply.
+
 ### Changed
 
+- `RuntimeCode` has two more variants, so an exhaustive `match` on it no
+  longer compiles: add an arm for `Unbound` and `NoRuntime`, or a
+  wildcard.
 - Build pins: `bazel_utils` 0.4.0 and Buf CLI v1.74.0. The generated code is
   unchanged.
 - buildifier, markdownlint, buf lint, rustfmt, and cargo-audit now run on
@@ -203,6 +230,7 @@ First release.
 ## Links
 
 - [Unreleased]
+- [0.4.0]
 - [0.3.1]
 - [0.3.0]
 - [0.2.2]
@@ -210,7 +238,8 @@ First release.
 - [0.2.0]
 - [0.1.0]
 
-[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.0
 [0.3.1]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.3.1
 [0.3.0]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.3.0
 [0.2.2]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.2.2

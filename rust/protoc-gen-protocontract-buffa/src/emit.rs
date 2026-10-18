@@ -13,6 +13,7 @@ use crate::methods::{Kind, Method};
 use crate::names::{ServiceNames, error_codes, method_name, parameter_name, qualified};
 use crate::options::Options;
 use crate::paths::path_tokens;
+use crate::references::{Reference, reference_tokens};
 use crate::resolve::TypeResolver;
 
 /// First line of every file the plugin writes.
@@ -24,11 +25,14 @@ pub(crate) struct OutputFile {
     pub(crate) content: String,
 }
 
-/// The traits of every service of `file`.
+/// The traits of every service of `file`, and the types of its reference
+/// messages.
 pub(crate) fn file_code(
     files: &[FileDescriptorProto],
     file: &FileDescriptorProto,
+    references: &[&Reference],
     resolver: &TypeResolver<'_>,
+    buffa_resolver: &TypeResolver<'_>,
     options: &Options,
 ) -> Result<String, Error> {
     let rt = path_tokens(&options.runtime)?;
@@ -36,6 +40,16 @@ pub(crate) fn file_code(
     for (index, service) in file.service.iter().enumerate() {
         tokens.extend(service_tokens(
             files, file, index, service, resolver, &rt, options,
+        )?);
+    }
+    for reference in references {
+        tokens.extend(reference_tokens(
+            files,
+            file,
+            reference,
+            resolver,
+            buffa_resolver,
+            options,
         )?);
     }
     let parsed = syn::parse2::<syn::File>(tokens).map_err(|error| {
@@ -154,26 +168,15 @@ fn service_tokens(
 
     let sync_trait = format_ident!("{}", sync_name);
     let async_trait = format_ident!("{}", async_name);
-    let mut methods = Vec::with_capacity(service.method.len());
-    for (method_index, method) in service.method.iter().enumerate() {
-        let rpc = method.name.as_deref().unwrap_or_default();
-        let kind = Kind::of(method);
-        let input = method.input_type.as_deref().unwrap_or_default();
-        methods.push(Method {
-            kind,
-            doc: doc_attrs(
-                &method_comment(file, index, method_index)
-                    .unwrap_or_else(|| format!("Call `{service_name}.{rpc}`.")),
-            ),
-            ident: make_field_ident(&method_name(rpc)),
-            parameter: make_field_ident(&parameter_name(input, kind.streams_in())),
-            request: resolver.rust_type(method.input_type.as_deref().unwrap_or_default())?,
-            reply: resolver.rust_type(method.output_type.as_deref().unwrap_or_default())?,
-            rt,
-            sync_trait: &sync_trait,
-            async_trait: &async_trait,
-        });
-    }
+    let methods = service_methods(
+        file,
+        index,
+        service,
+        resolver,
+        rt,
+        &sync_trait,
+        &async_trait,
+    )?;
     let sync_decls = methods.iter().map(Method::sync_decl);
     let async_decls = methods.iter().map(Method::async_decl);
     let erased_decls = methods.iter().map(Method::erased_decl);
@@ -251,6 +254,11 @@ fn service_tokens(
             pub fn from_arc<T: #async_trait + 'static>(service: ::std::sync::Arc<T>) -> Self {
                 Self { inner: service }
             }
+
+            /// Whether both handles hold the same implementation.
+            pub fn ptr_eq(&self, other: &Self) -> bool {
+                ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
+            }
         }
 
         impl #async_trait for #dyn_ident {
@@ -284,6 +292,41 @@ fn service_tokens(
             #(#blocking_impls)*
         }
     })
+}
+
+/// The methods of service `index` of `file`, as the emitters need them.
+pub(crate) fn service_methods<'a>(
+    file: &FileDescriptorProto,
+    index: usize,
+    service: &ServiceDescriptorProto,
+    resolver: &TypeResolver<'_>,
+    rt: &'a TokenStream,
+    sync_trait: &'a proc_macro2::Ident,
+    async_trait: &'a proc_macro2::Ident,
+) -> Result<Vec<Method<'a>>, Error> {
+    let package = file.package.as_deref().unwrap_or_default();
+    let service_name = qualified(package, service.name.as_deref().unwrap_or_default());
+    let mut methods = Vec::with_capacity(service.method.len());
+    for (method_index, method) in service.method.iter().enumerate() {
+        let rpc = method.name.as_deref().unwrap_or_default();
+        let kind = Kind::of(method);
+        let input = method.input_type.as_deref().unwrap_or_default();
+        methods.push(Method {
+            kind,
+            doc: doc_attrs(
+                &method_comment(file, index, method_index)
+                    .unwrap_or_else(|| format!("Call `{service_name}.{rpc}`.")),
+            ),
+            ident: make_field_ident(&method_name(rpc)),
+            parameter: make_field_ident(&parameter_name(input, kind.streams_in())),
+            request: resolver.rust_type(method.input_type.as_deref().unwrap_or_default())?,
+            reply: resolver.rust_type(method.output_type.as_deref().unwrap_or_default())?,
+            rt,
+            sync_trait,
+            async_trait,
+        });
+    }
+    Ok(methods)
 }
 
 /// `text` for a `//` comment: control characters (a line break would end

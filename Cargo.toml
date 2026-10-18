@@ -5,6 +5,7 @@ members = [
     "examples/glossary/app",
     "examples/glossary/consumer",
     "examples/glossary/provider",
+    "examples/refs/api",
     "rust/protocontract",
     "rust/golden",
     "rust/protoc-gen-protocontract-buffa",
@@ -19,7 +20,7 @@ edition = "2024"
 rust-version = "1.92"
 license = "Apache-2.0"
 repository = "https://github.com/sonalect/protocontract-buffa.rs"
-version = "0.3.1"
+version = "0.4.0"
 
 [workspace.dependencies]
 # Caret ranges, not `=` pins: `protocontract` and the plugin are published,

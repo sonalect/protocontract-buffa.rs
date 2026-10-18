@@ -353,6 +353,52 @@ let sync = Blocking::new(service.clone(), handle);
 - `Offload` turns a panic of the sync implementation into
   `RuntimeCode::Panicked`.
 
+## References to a service
+
+A message cannot hold an interface, so a method that takes or gives an
+implementation (a port, an object a factory returns) is written with a
+*reference message*:
+
+```protobuf
+import "protocontract/v1/options.proto";
+
+// A clock to read the time from.
+message ClockRef {
+  option (protocontract.v1.service) = "example.v1.Clock";
+}
+
+service Alarms {
+  rpc UseClock(ClockRef) returns (google.protobuf.Empty);
+}
+```
+
+The plugin emits the type `clock_ref::ClockRef`, which holds an
+implementation of `Clock` in the form it was given. Map the message to it
+in both plugins, and every field, request, and reply of `ClockRef` holds
+it:
+
+```yaml
+- local: protoc-gen-buffa
+  opt: [extern_path=.example.v1.ClockRef=crate::traits::clock_ref::ClockRef]
+- local: protoc-gen-protocontract-buffa
+  opt: [buffa_module=crate::proto, extern_path=.example.v1.ClockRef=crate::traits::clock_ref::ClockRef]
+```
+
+```rust
+alarms.use_clock(ClockRef::from_sync(MyClock))?;   // or from_async
+let clock = clock_ref.to_sync()?;                   // or to_async_inline / to_async_offload
+```
+
+`options.proto` ships in the `protocontract` crate, under `proto/`. A
+reference lives in one process: encoded it is an empty message, and a
+decoded one fails with `RuntimeCode::Unbound` when used; it has no JSON
+form. The reference names a service of its own package, and the message holds
+no data: the run fails if it declares a field. With buffa's `json=true`,
+pass `json=true` to this plugin too; next to
+`protoc-gen-protovalidate-buffa`, pass `validate=true`.
+[`examples/refs`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/refs)
+shows it in use.
+
 ## Example
 
 [`examples/glossary`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/glossary) is a whole contract in use: the
@@ -412,7 +458,7 @@ types):
 
 ```toml
 [dependencies]
-protocontract = { version = "0.3", features = ["tokio"] }
+protocontract = { version = "0.4", features = ["tokio"] }
 ```
 
 To keep tokio optional, pass `gate_tokio_feature` to the plugin: the
@@ -421,7 +467,7 @@ crate, which turns on the runtime's:
 
 ```toml
 [dependencies]
-protocontract = "0.3"
+protocontract = "0.4"
 
 [features]
 tokio = ["protocontract/tokio"]
@@ -442,6 +488,8 @@ existing one, naming both proto elements.
 | `element_memory_limit=<bytes\|unlimited>` | decode bound of the request, as for `protoc-gen-buffa` |
 | `runtime=<path>` | path of the runtime crate; default `::protocontract` |
 | `gate_tokio_feature[=<name>]` | `Offload` and `Blocking` impls under `#[cfg(feature = "<name>")]`; default `tokio` |
+| `json=<true\|false>` | buffa runs with `json=true`: reference types get serde impls too |
+| `validate=<true\|false>` | `protoc-gen-protovalidate-buffa` runs too: reference types implement `Validate` |
 
 Paths are absolute (`::…`, `crate`, or `crate::…`). Well-known types map
 to `::buffa_types` on their own. Any other parameter fails the run.

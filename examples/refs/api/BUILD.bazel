@@ -1,0 +1,54 @@
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+exports_files([
+    "Cargo.toml",
+    # Destination of //examples/refs:generate.
+    "src/generated",
+])
+
+rust_library(
+    name = "api",
+    srcs = glob(["src/**/*.rs"]),
+    crate_features = ["tokio"],
+    crate_name = "refs_api",
+    visibility = ["//rust:__pkg__"],
+    deps = [
+        "//rust/protocontract",
+        "@protocontract_buffa_cargo//:buffa",
+        "@protocontract_buffa_cargo//:buffa-types",
+        "@protocontract_buffa_cargo//:protovalidate-buffa",
+        "@protocontract_buffa_cargo//:serde",
+    ],
+)
+
+# Without the crate's `tokio` feature: `to_async_offload` compiles out, and
+# `to_sync` of an async implementation is `NO_RUNTIME`.
+rust_library(
+    name = "api_no_tokio",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "refs_api",
+    visibility = ["//rust:__pkg__"],
+    deps = [
+        "//rust/protocontract",
+        "@protocontract_buffa_cargo//:buffa",
+        "@protocontract_buffa_cargo//:buffa-types",
+        "@protocontract_buffa_cargo//:protovalidate-buffa",
+        "@protocontract_buffa_cargo//:serde",
+    ],
+)
+
+rust_test(
+    name = "refs_test",
+    size = "small",
+    srcs = ["tests/refs.rs"],
+    visibility = ["//rust:__pkg__"],
+    deps = [
+        ":api",
+        "//rust/protocontract",
+        "@protocontract_buffa_cargo//:buffa",
+        "@protocontract_buffa_cargo//:buffa-types",
+        "@protocontract_buffa_cargo//:protovalidate-buffa",
+        "@protocontract_buffa_cargo//:serde_json",
+        "@protocontract_buffa_cargo//:tokio",
+    ],
+)

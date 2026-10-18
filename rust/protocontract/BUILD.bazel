@@ -3,6 +3,14 @@ load("//bazel:compat.bzl", "NOT_WINDOWS")
 
 exports_files(["Cargo.toml"])
 
+# The options the plugin reads (`protocontract/v1/options.proto`), shipped
+# in the crate so a build that has the crate has them.
+filegroup(
+    name = "protos",
+    srcs = glob(["proto/**/*.proto"]),
+    visibility = ["//visibility:public"],
+)
+
 rust_library(
     name = "protocontract",
     srcs = glob(["src/**/*.rs"]),

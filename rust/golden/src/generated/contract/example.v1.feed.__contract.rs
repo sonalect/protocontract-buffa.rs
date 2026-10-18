@@ -142,6 +142,10 @@ impl DynFeedAsync {
     pub fn from_arc<T: FeedAsync + 'static>(service: ::std::sync::Arc<T>) -> Self {
         Self { inner: service }
     }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
+    }
 }
 impl FeedAsync for DynFeedAsync {
     fn watch(

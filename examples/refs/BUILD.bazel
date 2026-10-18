@@ -1,0 +1,24 @@
+load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@bazel_utils_buf//:buf.bzl", "buf_generate")
+
+# Spike: a message that stands for a reference to a service.
+filegroup(
+    name = "protos",
+    srcs = glob(["proto/**/*.proto"]),
+    visibility = ["//proto:__pkg__"],
+)
+
+buf_generate(
+    name = "generated",
+    module = "//proto:module",
+    plugins = ["//rust/protoc-gen-protocontract-buffa"],
+    template = "buf.gen.yaml",
+)
+
+write_source_files(
+    name = "generate",
+    check_that_out_file_exists = False,
+    files = {
+        "//examples/refs/api:src/generated": ":generated",
+    },
+)

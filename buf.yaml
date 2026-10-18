@@ -4,6 +4,8 @@
 version: v2
 modules:
   - path: examples/glossary/proto
+  - path: examples/refs/proto
+  - path: rust/protocontract/proto
   - path: proto
 lint:
   use:

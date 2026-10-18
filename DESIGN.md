@@ -1,6 +1,6 @@
 # Design: protocontract-buffa
 
-Status: accepted by the owner (6 October 2026); stages C1 and C2 done (6 October 2026); C3 and C4 dropped (7 October 2026)
+Status: accepted by the owner (6 October 2026); stages C1 and C2 done (6 October 2026); C3 and C4 dropped (7 October 2026); C6, references to a service, done 18 October 2026
 Repository: `github.com/sonalect/protocontract-buffa.rs`
 Crates: `protocontract` (runtime), `protoc-gen-protocontract-buffa` (protoc plugin)
 License: Apache-2.0
@@ -65,8 +65,11 @@ and `newStub`. gRPC C++ emits `Service`, `AsyncService`, and
 `CallbackService`. Go emits one blocking form because the language gives
 goroutines. Rust does not, so protocontract-buffa follows Java and C++.
 
-protocontract-buffa reads no option from `.proto` files. Every choice is a plugin
-parameter in `buf.gen.yaml`.
+No option in a `.proto` file chooses what is generated: every such choice
+is a plugin parameter in `buf.gen.yaml`. The one option the plugin reads,
+`(protocontract.v1.service)` (§4.7), says what a message *is*, a
+reference to a service, which is part of the contract; it says nothing of
+sync or async either.
 
 ## 4. What is generated
 
@@ -167,7 +170,8 @@ same method names. Only a call through the handle pays the allocation: one
 per call for the future, one per stream. The handle implements the async
 trait itself, so generic code takes it like any implementation. This is
 what the `dynosaur` crate does, generated instead of derived by a macro. The handle implements
-`Clone` (sharing the implementation) and `Debug` (its type name).
+`Clone` (sharing the implementation) and `Debug` (its type name), and
+`ptr_eq` tells whether two handles hold the same implementation.
 Once Rust can call async trait methods through `dyn`, the handle can go
 and implementations stay as they are.
 
@@ -265,6 +269,108 @@ even if the future is dropped.
   messages the traits take and return, and the caller or the
   implementation calls `validate()` where it decides to. No wrapper ties
   the generated code to one validation plugin.
+
+### 4.7 References to a service
+
+A message cannot hold an interface: protobuf has data types only. So a
+contract whose methods take or give an implementation (a port a host
+hands a component, an object a factory returns) had to wire it by hand,
+outside the contract. A *reference message* closes that gap:
+
+```protobuf
+import "protocontract/v1/options.proto";
+
+service Clock {
+  rpc Now(google.protobuf.Empty) returns (Tick);
+}
+
+// A clock to read the time from.
+message ClockRef {
+  option (protocontract.v1.service) = "example.v1.Clock";
+}
+
+message Alarm {
+  string label = 1;
+  ClockRef clock = 2;
+  repeated ClockRef backups = 3;
+}
+
+service Alarms {
+  rpc UseClock(ClockRef) returns (google.protobuf.Empty);
+  rpc CurrentClock(google.protobuf.Empty) returns (ClockRef);
+}
+```
+
+The option is declared in `protocontract/v1/options.proto`, which ships
+inside the `protocontract` crate (`proto/`): a build that has the crate
+has the file, Bazel included (`//rust/protocontract:protos`). The
+extension number is 57391, from the range for in-house use, and stays
+(item 46).
+
+**What is generated.** For each reference message the plugin emits a
+module named after it, next to the service's traits:
+
+```rust
+pub mod clock_ref {
+    pub struct ClockRef { /* the implementation, if any */ }
+
+    impl ClockRef {
+        pub fn from_sync<T: ClockSync + 'static>(service: T) -> Self;
+        pub fn from_shared(service: Arc<dyn ClockSync>) -> Self;
+        pub fn from_async<T: ClockAsync + 'static>(service: T) -> Self;
+        pub fn from_dyn(service: DynClockAsync) -> Self;
+        pub fn is_bound(&self) -> bool;
+        pub fn to_sync(&self) -> Result<Arc<dyn ClockSync>, Error>;
+        pub fn to_async_inline(&self) -> Result<DynClockAsync, Error>;
+        pub fn to_async_offload(&self) -> Result<DynClockAsync, Error>; // tokio
+    }
+}
+```
+
+buffa maps the message to that type with an `extern_path` of its own, and
+the plugin takes the same one, so every field, request, and reply of
+`ClockRef` holds it:
+
+```yaml
+- local: protoc-gen-buffa
+  opt: [extern_path=.example.v1.ClockRef=crate::traits::clock_ref::ClockRef]
+- local: protoc-gen-protocontract-buffa
+  opt: [buffa_module=crate::proto, extern_path=.example.v1.ClockRef=crate::traits::clock_ref::ClockRef]
+```
+
+- **Either form.** A reference holds the implementation as it was given,
+  blocking or async, whatever the form of the method that carries it: one
+  message type serves both traits, so the type cannot follow the trait.
+  The receiver takes the form it needs, and the bridge is its choice:
+  `to_sync` calls an async implementation through `Blocking` on the tokio
+  runtime current at the call; `to_async_inline` and `to_async_offload`
+  call a blocking one through `Inline` or `Offload`. A bridge of a whole
+  service passes a reference through unchanged.
+- **One process.** A reference encodes as an empty message. Decoded, and
+  as the default, it holds no implementation, and taking a form fails with
+  `RuntimeCode::Unbound`: loud at the first use, not a silent stub. It has
+  no JSON form: serializing one fails, and so does reading one, while a
+  message without it reads and writes as before (`json=true`).
+- **Equality** is identity: two references are equal when they hold the
+  same implementation (`Arc::ptr_eq`, `Dyn…Async::ptr_eq`).
+- **Checks.** The run fails when a reference message has fields, oneofs,
+  nested types, or extensions; is nested; names a service outside its own
+  package or one the request lacks; is not mapped by an `extern_path` of
+  its own to `<mount>::<module>::<Name>`; or when its module has the name
+  of buffa's module of another message.
+- **Why a module per reference.** buffa looks for the view of a mapped
+  type at `<mapped module>::__buffa::view::<Name>View`, and its own view of
+  the message already names the mapped type as its owned one; the module
+  re-exports that view there. One module per reference keeps that
+  `__buffa` path from meeting buffa's own, in a crate that mounts every
+  generator into one module, or another reference's.
+- **Validation.** `protoc-gen-protovalidate-buffa` calls `validate()` on
+  every message field, so with `validate=true` a reference type implements
+  `Validate` too: it carries no data and is always valid. A rule on the
+  field itself (`required`) applies as to any message field.
+- **Limits.** The view path is a buffa convention, not an API: a buffa
+  release may move it, and the golden checks catch that. buffa's views are
+  needed (`views` on, buffa's default).
 
 ## 5. Runtime crate `protocontract`
 
@@ -383,6 +489,8 @@ the same way:
 | `element_memory_limit=<bytes\|unlimited>` | accepted; `decode_request` has applied it | same |
 | `runtime=<path>` | path of the runtime crate; default `::protocontract` | — |
 | `gate_tokio_feature[=<name>]` | `Offload` and `Blocking` impls under `#[cfg(feature = "<name>")]`, default `tokio` | as `gate_client_feature` |
+| `json=<true\|false>` | buffa runs with `json=true`: reference types get serde impls (§4.7) | — |
+| `validate=<true\|false>` | `protoc-gen-protovalidate-buffa` runs too: reference types implement `Validate` (§4.7) | — |
 
 Every Rust path a parameter gives, `runtime` included, must be absolute
 (`::…`, `crate`, or `crate::…`) and made of plain identifiers. A proto prefix mapped twice fails the run
@@ -521,6 +629,17 @@ connect-rust takes.
   28-core WSL2 host; the ignored test `offload_cost`). `Offload` pays for
   itself once a call blocks for tens of microseconds; below that, `Inline`
   or a direct sync call.
+- **O6.** Answered 18 October 2026: `protoc-gen-protovalidate-buffa`
+  0.10.4 validates a message field by calling `validate()` on it, so a
+  reference type needs `Validate`; `validate=true` emits it, always valid.
+  `examples/refs` runs protovalidate next to the plugin and validates a
+  message that holds references.
+- **O7.** Open: how a consumer's own `buf` module finds
+  `protocontract/v1/options.proto`. The file ships in the crate; a Bazel
+  consumer that takes the crate through crate_universe exposes it with an
+  annotation (a `filegroup` in the crate's `BUILD`), a Cargo-only consumer
+  points its `buf.yaml` at the crate's sources. The first consumer settles
+  which, and this section then shows it.
 
 ## 9. Repository
 
@@ -602,6 +721,14 @@ the named exceptions of its dependency quarantine, next to `scheda` and
   plugin built here (`//examples/glossary:generate_test`), and its provider,
   consumer, and application run their tests: codes from the proto, an own
   `Fault`, retry, a stack, and the application's whole output.
+- **T9. References.** `examples/refs` generates a reference message, a
+  message that holds references in a field and a list, and a service that
+  takes and gives one (`//examples/refs:generate_test`), and calls them in
+  both forms (`//examples/refs/api:refs_test`): a reference through
+  `Inline`, the form conversions, `UNBOUND` after encoding and as the
+  default, `NO_RUNTIME`, identity, no JSON form, `Validate`, and that a
+  form given comes back as the same implementation, with no bridge. The
+  plugin's own tests cover every check of §4.7 (`references::tests`).
 
 ## 10. Stages
 
@@ -612,6 +739,7 @@ the named exceptions of its dependency quarantine, next to `scheda` and
 | C3 | ~~Connect adapters~~ dropped 7 October 2026 (item 32) | — |
 | C4 | ~~Validation wrapper~~ dropped 7 October 2026 (item 33) | — |
 | C5 | Release workflow for six platforms and static binaries; the `bazel_utils` catalog entry | Knowqore generates through `protoc.plugin`. Workflow and `dist` profile written 6 October 2026, run on GitHub not yet |
+| C6 | References to a service (§4.7): the option, the reference type, `RuntimeCode::Unbound` and `NoRuntime`, `Dyn…Async::ptr_eq`, the `json` and `validate` parameters | T9. Done 18 October 2026: `//examples/refs/api:refs_test`, `//rust/protoc-gen-protocontract-buffa:lib_test` |
 
 C1, C2, and C5 are enough for Knowqore's first consumer, the format axis,
 which is sync and stays in process. That pilot is planned in Knowqore.
@@ -641,7 +769,9 @@ owner dropped the Connect adapters and the validation wrapper (items 32,
    module not named `protocontract`, which would make `protocontract::…`
    ambiguous with the crate.
 2. **No options in `.proto`; both forms are always generated** (§3).
-   *Accepted 6 October 2026.*
+   *Accepted 6 October 2026.* *Revised 18 October 2026: no option chooses
+   what is generated; `(protocontract.v1.service)` says what a message is
+   (item 40).*
 3. **Request by value in both forms** (§4). *Accepted 6 October 2026.*
 4. ~~Own `Status` mirroring `google.rpc.Status`, not `ConnectError`.~~
    *Revised 7 October 2026: item 34.*
@@ -754,3 +884,33 @@ owner dropped the Connect adapters and the validation wrapper (items 32,
     `ToolsService` alone keeps the `Service` suffix, so the golden run
     still compiles the `<Service>ErrorCode` alias (`ToolsServiceErrorCode`).
     *Decided by the owner, 7 October 2026.*
+40. **A reference to a service is a message type** (§4.7): an empty
+    message marked `(protocontract.v1.service) = "pkg.Service"` stands for
+    an implementation of that service, in a field, a request, or a reply.
+    Revises item 2. *Settled with the owner, 18 October 2026, after a spike
+    showed buffa takes the mapped type in fields, lists, views, and JSON.*
+41. **The option ships inside the `protocontract` crate** (`proto/`), so
+    a build that has the crate has it. *The owner's requirement, 18
+    October 2026.*
+42. **One module per reference** (`clock_ref::ClockRef`), mapped by an
+    `extern_path` of its own in both plugins, which the plugin checks.
+    *Accepted by the owner, 18 October 2026.*
+43. **A reference holds either form; the receiver picks the bridge**:
+    `to_sync`, `to_async_inline`, `to_async_offload`. A form that matches
+    the one given comes back as the same implementation, with no bridge:
+    a bridge runs only when the forms differ and the receiver asks for it.
+    *Accepted by the owner, 18 October 2026, on that condition.*
+44. **A reference lives in one process**: empty on the wire, `UNBOUND`
+    when used after decoding, no JSON form; equality is identity. A
+    reference message holds no data, and the run fails if it declares any.
+    *Accepted by the owner, 18 October 2026.*
+45. **A reference names a service of its own package**, so the type and
+    the traits sit in one module. A later stage may lift it. *Accepted by
+    the owner, 18 October 2026.*
+46. **Extension number 57391**, from the range for in-house use, kept for
+    good: changing it would break every contract that uses the option. Not
+    a round number, which others in that range tend to pick. The global
+    registry, assigned up to 1390 on 18 October 2026, is not asked. *The
+    owner's choice, 18 October 2026.*
+47. **`Validate` on a reference** with `validate=true` (§4.7, O6).
+    *Accepted by the owner, 18 October 2026.*

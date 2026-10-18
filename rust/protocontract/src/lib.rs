@@ -77,6 +77,8 @@ mod error;
 mod inline;
 #[cfg(feature = "tokio")]
 mod offload;
+#[doc(hidden)]
+pub mod reference;
 mod stream;
 
 use std::future::Future;

@@ -1,0 +1,27 @@
+// The options protoc-gen-protocontract-buffa reads from a contract.
+//
+// Import this file as `protocontract/v1/options.proto`. It ships inside the
+// `protocontract` crate (`proto/`), so a build that has the crate has the
+// file.
+
+edition = "2024";
+
+package protocontract.v1;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  // The message stands for a reference to an implementation of this
+  // service: its full name, `package.Service`, in the package of the
+  // message. The message has no fields.
+  //
+  // A field, a request, or a reply of that type carries the implementation
+  // itself, in the form it was given (blocking or async), within one
+  // process. Encoded, the reference becomes an empty message: decoded, it
+  // holds no implementation, and using it fails with `UNBOUND`.
+  //
+  //     message ClockRef {
+  //       option (protocontract.v1.service) = "example.v1.Clock";
+  //     }
+  string service = 57391;
+}

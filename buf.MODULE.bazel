@@ -19,3 +19,7 @@ protoc.plugin(
     name = "protoc-gen-connect-rust",
     version = "v0.9.1",
 )
+protoc.plugin(
+    name = "protoc-gen-protovalidate-buffa",
+    version = "v0.10.4",
+)

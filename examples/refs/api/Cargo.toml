@@ -1,0 +1,27 @@
+[package]
+name = "refs-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Example: a message that stands for a reference to a service."
+
+[features]
+default = ["tokio"]
+tokio = ["protocontract/tokio"]
+
+[dependencies]
+buffa = { workspace = true, features = ["json"] }
+buffa-types = { workspace = true }
+protocontract = { workspace = true }
+protovalidate-buffa = { version = "0.7.2", default-features = false }
+serde = "1.0.229"
+
+[dev-dependencies]
+serde_json = "1.0.154"
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true

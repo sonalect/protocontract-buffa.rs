@@ -173,6 +173,10 @@ impl DynToolsServiceAsync {
     ) -> Self {
         Self { inner: service }
     }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
+    }
 }
 impl ToolsServiceAsync for DynToolsServiceAsync {
     fn call(

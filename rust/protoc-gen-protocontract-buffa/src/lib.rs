@@ -49,6 +49,20 @@
 //!   `::protocontract`.
 //! - `gate_tokio_feature[=<name>]`: put the `Offload` and `Blocking` impls
 //!   under `#[cfg(feature = "<name>")]`; default name `tokio`.
+//! - `json=<true|false>`: buffa runs with `json=true`, so the reference
+//!   types implement serde too.
+//! - `validate=<true|false>`: `protoc-gen-protovalidate-buffa` runs too, so
+//!   the reference types implement `Validate`.
+//!
+//! # References to a service
+//!
+//! An empty message marked `option (protocontract.v1.service) =
+//! "pkg.Service";` (`protocontract/v1/options.proto`, shipped in the
+//! `protocontract` crate) gets a type of its own in the module named after
+//! it (`ClockRef` gives `clock_ref::ClockRef`), which holds an
+//! implementation of the service in either form. Map the message there
+//! with `extern_path=.pkg.ClockRef=<mount>::clock_ref::ClockRef`, in this
+//! plugin's parameters and in `protoc-gen-buffa`'s.
 //!
 //! Every path must be absolute: `::some_crate::…`, `crate`, or `crate::…`. Any other
 //! parameter fails the run. So does a generated name that another item of
@@ -67,6 +81,7 @@ mod methods;
 mod names;
 mod options;
 mod paths;
+mod references;
 mod resolve;
 mod sanitize;
 
@@ -81,7 +96,7 @@ use buffa_codegen::generated::descriptor::Edition;
 pub use error::Error;
 
 use emit::{file_code, layout};
-use names::check_clashes;
+use names::{check_clashes, check_reference_clashes};
 use options::Options;
 use resolve::TypeResolver;
 
@@ -114,9 +129,25 @@ pub fn run(input: &[u8]) -> CodeGeneratorResponse {
 /// already has.
 pub fn generate(request: &CodeGeneratorRequest) -> Result<CodeGeneratorResponse, Error> {
     let mut options = Options::parse(request.parameter.as_deref())?;
+    let references = references::find(&request.proto_file, &request.file_to_generate)?;
+    references::check_paths(&references, &options.extern_paths)?;
+    // buffa's own paths, without the mappings of the references: where
+    // buffa's view of a reference message lives.
+    let mut buffa_config = CodeGenConfig::default();
+    buffa_config.extern_paths = options
+        .extern_paths
+        .iter()
+        .filter(|(proto, _)| !references.iter().any(|reference| reference.fqn == *proto))
+        .cloned()
+        .collect();
     let mut config = CodeGenConfig::default();
     config.extern_paths = std::mem::take(&mut options.extern_paths);
     let resolver = TypeResolver::new(&request.proto_file, &request.file_to_generate, &config);
+    let buffa_resolver = TypeResolver::new(
+        &request.proto_file,
+        &request.file_to_generate,
+        &buffa_config,
+    );
 
     let mut code = Vec::new();
     let mut checked_packages = Vec::new();
@@ -130,18 +161,30 @@ pub fn generate(request: &CodeGeneratorRequest) -> Result<CodeGeneratorResponse,
                 "{name}: listed in file_to_generate but missing from proto_file"
             )));
         };
-        if file.service.is_empty() {
+        let in_file: Vec<&references::Reference> = references
+            .iter()
+            .filter(|reference| reference.proto == *name)
+            .collect();
+        if file.service.is_empty() && in_file.is_empty() {
             continue;
         }
         let package = file.package.clone().unwrap_or_default();
         if !checked_packages.contains(&package) {
             check_clashes(&request.proto_file, &package)?;
+            check_reference_clashes(&request.proto_file, &package, &references)?;
             checked_packages.push(package.clone());
         }
         code.push((
             name.clone(),
             package,
-            file_code(&request.proto_file, file, &resolver, &options)?,
+            file_code(
+                &request.proto_file,
+                file,
+                &in_file,
+                &resolver,
+                &buffa_resolver,
+                &options,
+            )?,
         ));
     }
 

@@ -1,0 +1,46 @@
+// An example of a message that stands for a reference to a service.
+
+edition = "2024";
+
+package refs.v1;
+
+import "google/protobuf/empty.proto";
+import "protocontract/v1/options.proto";
+
+// Tells the time.
+service Clock {
+  // The time now.
+  rpc Now(google.protobuf.Empty) returns (Tick);
+}
+
+// A moment.
+message Tick {
+  // Milliseconds since the Unix epoch.
+  int64 unix_ms = 1;
+}
+
+// A clock to read the time from.
+message ClockRef {
+  option (protocontract.v1.service) = "refs.v1.Clock";
+}
+
+// An alarm: data and references in one message.
+message Alarm {
+  // What the alarm is for.
+  string label = 1;
+  // The clock the alarm reads.
+  ClockRef clock = 2;
+  // Clocks to fall back on.
+  repeated ClockRef backups = 3;
+}
+
+// Keeps alarms.
+service Alarms {
+  // Set an alarm.
+  rpc Set(Alarm) returns (google.protobuf.Empty);
+  // Use this clock from now on.
+  rpc UseClock(ClockRef) returns (google.protobuf.Empty);
+  // The clock in use.
+  rpc CurrentClock(google.protobuf.Empty) returns (ClockRef);
+}
+

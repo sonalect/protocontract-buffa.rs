@@ -1,0 +1,36 @@
+# Generate for examples/refs (`bazel run //examples/refs:generate`).
+# `ClockRef` is a reference to `refs.v1.Clock`: protocontract-buffa emits
+# its type in the module `clock_ref` of the package's traits, and both
+# plugins map the message there, so every message and trait that names it
+# holds that type. `json=true` on both: the reference has serde impls too.
+# protovalidate-buffa calls `validate()` on every message field, so the
+# plugin gets `validate=true` and the reference implements `Validate`.
+version: v2
+inputs:
+  - directory: examples/refs/proto
+plugins:
+  - local: protoc-gen-buffa
+    out: examples/refs/api/src/generated/buffa
+    strategy: all
+    opt:
+      - json=true
+      - extern_path=.refs.v1.ClockRef=crate::traits::clock_ref::ClockRef
+  - local: protoc-gen-buffa-packaging
+    out: examples/refs/api/src/generated/buffa
+    strategy: all
+  - local: protoc-gen-protovalidate-buffa
+    out: examples/refs/api/src/generated/buffa
+    strategy: all
+    opt:
+      - proto_module=crate::proto
+      - packaging=false
+  - local: protoc-gen-protocontract-buffa
+    out: examples/refs/api/src/generated/contract
+    strategy: all
+    opt:
+      - buffa_module=crate::proto
+      - extern_path=.refs.v1.ClockRef=crate::traits::clock_ref::ClockRef
+      - file_per_package
+      - gate_tokio_feature
+      - json=true
+      - validate=true
