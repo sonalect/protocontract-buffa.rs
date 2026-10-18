@@ -11,8 +11,10 @@ Plain Rust traits for protobuf services.
 `protoc-gen-protocontract-buffa` turns each protobuf `service` into Rust traits
 over the message structs [buffa](https://github.com/anthropics/buffa)
 generates. A component in the same process is called by a method call: no
-encoding, no transport, no view types. The runtime crate `protocontract` holds
-the types the generated code names. The runtime and the generated code need
+encoding, no transport, no view types. A method can also take or give an
+implementation of another service, in a field, a request, or a reply
+([References to a service](#references-to-a-service)). The runtime crate
+`protocontract` holds the types the generated code names. The runtime and the generated code need
 Rust 1.92 or newer; building the plugin from source needs Rust 1.99.1 (the
 release binaries need no Rust at all).
 
@@ -60,6 +62,8 @@ pub struct DynGreeterAsync { /* … */ }
 impl DynGreeterAsync {
     pub fn new<T: GreeterAsync + 'static>(service: T) -> Self;
     pub fn from_arc<T: GreeterAsync + 'static>(service: Arc<T>) -> Self;
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool;
 }
 ```
 
@@ -310,8 +314,12 @@ caller that branches on it is bound to that implementation.
 - `protocontract::RuntimeCode` holds the runtime's own codes:
   `RuntimeCode::Panicked` (a panic under `Offload`),
   `RuntimeCode::CannotBlock` (`Blocking` inside a current-thread runtime),
-  and `RuntimeCode::Cancelled` (a blocking call dropped by its runtime).
-  `Display` prints them as `PANICKED`, `CANNOT_BLOCK`, and `CANCELLED`.
+  `RuntimeCode::Cancelled` (a blocking call dropped by its runtime),
+  `RuntimeCode::Unbound` (a reference to a service that holds no
+  implementation), and `RuntimeCode::NoRuntime` (an async implementation
+  asked for in the blocking form where no tokio runtime can run it).
+  `Display` prints them as `PANICKED`, `CANNOT_BLOCK`, `CANCELLED`,
+  `UNBOUND`, and `NO_RUNTIME`.
 - A component may have codes of its own, outside any contract: a Rust enum
   that implements `protocontract::ErrorCode` (`to_i32`, `from_i32`, `name`)
   works like a protobuf enum.
@@ -355,27 +363,58 @@ let sync = Blocking::new(service.clone(), handle);
 
 ## References to a service
 
-A message cannot hold an interface, so a method that takes or gives an
-implementation (a port, an object a factory returns) is written with a
-*reference message*:
+Protobuf has data types only: a message cannot hold an interface. So a
+method that takes or gives an implementation (a port a host hands a
+component, an object a factory returns) is written with a *reference
+message*: an empty message that names the service it stands for.
 
 ```protobuf
 import "protocontract/v1/options.proto";
+
+// Tells the time.
+service Clock {
+  rpc Now(google.protobuf.Empty) returns (Tick);
+}
 
 // A clock to read the time from.
 message ClockRef {
   option (protocontract.v1.service) = "example.v1.Clock";
 }
 
+message Alarm {
+  string label = 1;
+  ClockRef clock = 2;            // data and an implementation in one message
+  repeated ClockRef backups = 3;
+}
+
 service Alarms {
   rpc UseClock(ClockRef) returns (google.protobuf.Empty);
+  rpc CurrentClock(google.protobuf.Empty) returns (ClockRef);
 }
 ```
 
-The plugin emits the type `clock_ref::ClockRef`, which holds an
-implementation of `Clock` in the form it was given. Map the message to it
-in both plugins, and every field, request, and reply of `ClockRef` holds
-it:
+For each reference message the plugin emits a type in a module named
+after it, next to the service's traits:
+
+```rust
+pub mod clock_ref {
+    pub struct ClockRef { /* the implementation, if any */ }
+
+    impl ClockRef {
+        pub fn from_sync<T: ClockSync + 'static>(service: T) -> Self;
+        pub fn from_shared(service: Arc<dyn ClockSync>) -> Self;
+        pub fn from_async<T: ClockAsync + 'static>(service: T) -> Self;
+        pub fn from_dyn(service: DynClockAsync) -> Self;
+        pub fn is_bound(&self) -> bool;
+        pub fn to_sync(&self) -> Result<Arc<dyn ClockSync>, Error>;
+        pub fn to_async_inline(&self) -> Result<DynClockAsync, Error>;
+        pub fn to_async_offload(&self) -> Result<DynClockAsync, Error>;  // tokio
+    }
+}
+```
+
+Map the message to that type with the same `extern_path` in both plugins;
+every field, request, and reply of `ClockRef` then holds it:
 
 ```yaml
 - local: protoc-gen-buffa
@@ -385,19 +424,46 @@ it:
 ```
 
 ```rust
-alarms.use_clock(ClockRef::from_sync(MyClock))?;   // or from_async
-let clock = clock_ref.to_sync()?;                   // or to_async_inline / to_async_offload
+// The caller hands over an implementation in its own form.
+alarms.use_clock(ClockRef::from_sync(SystemClock))?;
+alarms.use_clock(ClockRef::from_async(NetworkClock::new()))?;
+
+// The receiver takes the form it needs.
+let clock = clock_ref.to_sync()?;
+let tick = clock.now(Empty::default())?;
 ```
 
-`options.proto` ships in the `protocontract` crate, under `proto/`. A
-reference lives in one process: encoded it is an empty message, and a
-decoded one fails with `RuntimeCode::Unbound` when used; it has no JSON
-form. The reference names a service of its own package, and the message holds
-no data: the run fails if it declares a field. With buffa's `json=true`,
-pass `json=true` to this plugin too; next to
-`protoc-gen-protovalidate-buffa`, pass `validate=true`.
+- **Native when the forms match.** A reference holds the implementation as
+  it was given. Asked for that same form, it gives back the same
+  implementation, with no wrapper. A bridge runs only when the forms
+  differ, and only the one the receiver names: `to_sync` calls an async
+  implementation through `Blocking` on the tokio runtime current at the
+  call; `to_async_inline` and `to_async_offload` call a blocking one
+  through `Inline` (inside `poll`, for calls of microseconds) or `Offload`
+  (on tokio's blocking pool). See [Bridges](#bridges).
+- **One process.** A reference encodes as an empty message. Decoded, and as
+  the default, it holds no implementation, and taking a form fails with
+  `RuntimeCode::Unbound`. It has no JSON form: serializing one fails, and so
+  does reading one; a message without it reads and writes as before.
+- **Equality** is identity: two references are equal when they hold the
+  same implementation.
+- **No data.** A reference message declares no field, oneof, nested type,
+  or extension; the run fails if it does. It is a top-level message, and
+  it names a service of its own package. Its type sits in its own module
+  (`clock_ref`), which the run checks is free.
+- **With buffa's `json=true`**, pass `json=true` to this plugin too, and
+  depend on `serde`. **Next to `protoc-gen-protovalidate-buffa`**, which
+  calls `validate()` on every message field, pass `validate=true`: the
+  reference type implements `Validate`, always valid.
+
+`options.proto` ships inside the `protocontract` crate, under `proto/`
+(`proto/protocontract/v1/options.proto`), so whatever has the crate has
+the file. Add that directory to the `buf` module that compiles your
+contract, next to your own protos; a Bazel build exposes it from the
+crate's repository as a `filegroup`.
+
 [`examples/refs`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/refs)
-shows it in use.
+shows all of it in use, protovalidate included.
 
 ## Example
 
@@ -405,6 +471,9 @@ shows it in use.
 proto, the generated crate, a provider that implements it, a consumer that
 calls it without knowing the provider, and the application that wires the
 two. `cargo run -p glossary-app` runs it.
+
+[`examples/refs`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/refs) is a contract whose messages and methods carry
+references to a service; `cargo test -p refs-api` runs it.
 
 ## Use
 

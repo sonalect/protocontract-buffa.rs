@@ -419,7 +419,8 @@ neither. There is no option in the proto (item 2), and the trait
 signatures do not change. Nothing stops an implementation from failing
 with another enum's code; its tests catch that.
 `RuntimeCode` holds the runtime's own codes: `PANICKED`, `CANNOT_BLOCK`,
-`CANCELLED`.
+`CANCELLED`, and, for references to a service (§4.7), `UNBOUND` and
+`NO_RUNTIME`.
 
 **A fault says what failed.** `Fault: std::error::Error + Send + Sync +
 'static` has `code()` (required), `retryable()` (default `false`: whether

@@ -33,6 +33,19 @@
 //! see that rather than a stream that merely ends early. No stream borrows
 //! the service, so a stream can outlive the call and move between threads.
 //!
+//! # References to a service
+//!
+//! An empty message marked `option (protocontract.v1.service) =
+//! "pkg.Service";` stands for an implementation of that service: the
+//! plugin emits a type for it that a field, a request, or a reply carries,
+//! holding the implementation in the form it was given. The option is
+//! declared in `proto/protocontract/v1/options.proto`, which ships in this
+//! crate. A reference does not survive encoding: taking a form of a
+//! decoded one fails with [`RuntimeCode::Unbound`], and asking for an
+//! async implementation in the blocking form where no tokio runtime can run
+//! it fails with [`RuntimeCode::NoRuntime`]. The generated code uses the
+//! hidden module `reference`; nothing there is named by hand.
+//!
 //! # Bridges
 //!
 //! The plugin also implements each form for wrappers around the other:
