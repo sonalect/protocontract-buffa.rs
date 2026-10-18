@@ -2,29 +2,36 @@
 
 ## State
 
-- `../bazel_utils` (`protoc/plugins/`) catalogs the plugin under its old
-  name, `protoc-gen-contract-rust`, versions v0.1.0, v0.2.0, and v0.2.1,
-  with release URLs and README links on `sonalect/proto-contract.rs`.
-  GitHub redirects that URL to `sonalect/protocontract-buffa.rs`, so the
-  old entry keeps working.
-- The owner renamed the project on 16 October 2026: repository
-  `sonalect/protocontract-buffa.rs`, plugin and binary
-  `protoc-gen-protocontract-buffa`, Bazel module `protocontract_buffa`.
-  The release binaries take the new name from the first release after the
-  rename, so the old catalog entry cannot list that release.
+- `../bazel_utils` 0.4.0 catalogs the plugin as
+  `protoc-gen-protocontract-buffa`, version v0.3.1 only
+  (`protoc/plugins/protoc-gen-protocontract-buffa/registry.bzl`); the old
+  `protoc-gen-contract-rust` entry is gone. Scheda pins it at v0.3.1.
+- v0.4.0 was released on 18 October 2026 (references to a service). It is
+  not in the catalog yet, so a Bazel consumer cannot take it through
+  `protoc.plugin` until it is.
 - Knowqore (`../knowqore`) still depends on `sonalect/proto-contract.rs`
   and the old plugin name.
 
-## How to finish
+## How to add a release
 
-1. Release the renamed plugin here (`.claude/skills/versioning/SKILL.md`).
-2. In `../bazel_utils`: add `protoc/plugins/protoc-gen-protocontract-buffa/`
-   with the sha256 values from that Release's `checksums-sha256.txt`, and
-   register it everywhere its `CLAUDE.md` lists ("Adding a protoc
-   plugin"). Keep or drop the old `protoc-gen-contract-rust` entry; that
-   is the owner's call.
-3. Knowqore takes the new plugin name, the new repository URL, and the new
-   tag.
+In `../bazel_utils`, when the owner asks: add the version to
+`protoc/plugins/protoc-gen-protocontract-buffa/registry.bzl` with the
+sha256 values from that Release's `checksums-sha256.txt`, as its
+`CLAUDE.md` says ("Adding a protoc plugin"), and release bazel_utils.
+
+## A bug found there: `buf_generate` scratch paths
+
+`buf/generate.bzl` names its scratch directories after the target alone
+(`prefix = ctx.label.name`: `<execroot>/<name>.plugin_bin`, `.work`,
+`.home`, `.buf-cache`). On Windows, where actions run unsandboxed, two
+`buf_generate` targets of one name in different packages that run together
+collide: `cp: can't create …/generated.plugin_bin/protoc-gen-buffa.exe:
+File exists`. Seen on 18 October 2026 in this repository's release
+workflow on both Windows runners (`//examples/glossary:generated` and
+`//examples/refs:generated`); worked around here by naming the second
+target `refs_generated`. The fix belongs in bazel_utils: take the package
+into the prefix (or declare the directories as action outputs).
 
 **Why:** a consumer pins the plugin by its catalog name, and the binary
-names in a Release are the catalog's download URLs.
+names in a Release are the catalog's download URLs. The scratch-path bug
+hits any repository with two `buf_generate` targets of one name.

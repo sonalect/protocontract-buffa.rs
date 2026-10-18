@@ -14,8 +14,12 @@
   `LICENSE`, and `exclude = ["BUILD.bazel"]` in both packages; docs.rs
   with all features; a README with absolute links and the crates.io
   dependency; `.bazelignore` for `target/package`.
+- 0.4.0 was published on 18 October 2026 from the tag `v0.4.0`, by Claude
+  at the owner's request, with the crates.io token configured on the
+  owner's machine (`~/.cargo/credentials.toml`): `--dry-run` first, then
+  `protocontract`, then the plugin.
 - Every release publishes both crates by hand: step 4 of
-  `.claude/skills/versioning/SKILL.md`, run by the owner.
+  `.claude/skills/versioning/SKILL.md`, run by the owner or at his request.
 - The README's shields.io badges (version, license) cache a crate's
   answer for one and four hours: a badge loaded before a publish shows
   "not found" until then.

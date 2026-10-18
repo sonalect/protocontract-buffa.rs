@@ -6,8 +6,8 @@ before planning; open a note when its topic comes up.
 
 | Note | What it holds |
 | - | - |
-| [bazel-utils-catalog.md](bazel-utils-catalog.md) | The plugin's bazel_utils catalog entry: catalogued under the old name `protoc-gen-contract-rust`; the steps for the renamed plugin in bazel_utils and Knowqore |
-| [crates-io-publish.md](crates-io-publish.md) | crates.io: both crates published (0.3.1, by hand); Trusted Publishing and the social preview still to do |
+| [bazel-utils-catalog.md](bazel-utils-catalog.md) | The plugin's bazel_utils catalog entry (v0.3.1; v0.4.0 still to add), and the `buf_generate` scratch-path bug found there |
+| [crates-io-publish.md](crates-io-publish.md) | crates.io: both crates published (0.4.0, by hand); Trusted Publishing and the social preview still to do |
 
 ## References
 
