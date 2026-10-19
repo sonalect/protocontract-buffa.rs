@@ -2,13 +2,11 @@
 
 ## State
 
-- `../bazel_utils` 0.4.0 catalogs the plugin as
-  `protoc-gen-protocontract-buffa`, version v0.3.1 only
-  (`protoc/plugins/protoc-gen-protocontract-buffa/registry.bzl`); the old
-  `protoc-gen-contract-rust` entry is gone. Scheda pins it at v0.3.1.
-- v0.4.0 was released on 18 October 2026 (references to a service). It is
-  not in the catalog yet, so a Bazel consumer cannot take it through
-  `protoc.plugin` until it is.
+- `../bazel_utils` 0.4.2 (19 October 2026) catalogs the plugin as
+  `protoc-gen-protocontract-buffa`, versions v0.3.1, v0.4.0, and v0.4.1
+  (`protoc/plugins/protoc-gen-protocontract-buffa/registry.bzl`), with
+  v0.4.1 as the fallback pin; 0.4.1 of bazel_utils added v0.4.0. Scheda
+  pins bazel_utils 0.4.2 and the plugin at v0.4.1.
 - Knowqore (`../knowqore`) still depends on `sonalect/proto-contract.rs`
   and the old plugin name.
 

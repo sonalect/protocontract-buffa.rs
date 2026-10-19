@@ -18,6 +18,11 @@
   at the owner's request, with the crates.io token configured on the
   owner's machine (`~/.cargo/credentials.toml`): `--dry-run` first, then
   `protocontract`, then the plugin.
+- 0.4.1 was published on 19 October 2026 from the tag `v0.4.1`, the same
+  way. Its Release workflow ran during a GitHub runner outage: the
+  Release was published at 16:02 UTC with all six binaries while the API
+  still showed two jobs `in_progress`; the job states lagged, the work
+  was done (the artifacts' times and the release job's `needs` show it).
 - Every release publishes both crates by hand: step 4 of
   `.claude/skills/versioning/SKILL.md`, run by the owner or at his request.
 - The README's shields.io badges (version, license) cache a crate's
