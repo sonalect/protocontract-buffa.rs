@@ -439,7 +439,7 @@ impl<T: AlarmsAsync + 'static> AlarmsSync for ::protocontract::Blocking<T> {
         )
     }
 }
-/// The reference type of `refs.v1.ClockRef`: [`ClockRef`].
+/// The reference type of `refs.v1.ClockRef`: [`ClockRef`](clock_ref::ClockRef).
 pub mod clock_ref {
     /// A clock to read the time from.
     ///

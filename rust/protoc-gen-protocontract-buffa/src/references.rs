@@ -308,9 +308,11 @@ pub(crate) fn reference_tokens(
         sync = names.sync,
         asynchronous = names.asynchronous,
     ));
+    // The link names the type through its module: the comment sits on the
+    // module, outside it, where the type is not in scope.
     let module_doc = doc_attrs(&format!(
-        "The reference type of `{full_name}`: [`{}`].",
-        reference.name
+        "The reference type of `{full_name}`: [`{ty_name}`]({}::{ty_name}).",
+        reference.module
     ));
 
     let form = quote!(#rt::reference::Form<dyn super::#sync_trait, super::#dyn_handle>);
@@ -698,6 +700,10 @@ mod tests {
             MAPPED,
         ));
         assert!(code.contains("pubmodclock_ref{"), "{code}");
+        assert!(
+            code.contains("[`ClockRef`](clock_ref::ClockRef)"),
+            "the module doc links the type through the module: {code}"
+        );
         assert!(code.contains("pubstructClockRef{"), "{code}");
         assert!(code.contains(
             "pub__form:::core::option::Option<::protocontract::reference::Form<dynsuper::ClockSync,super::DynClockAsync>>"

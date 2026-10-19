@@ -8,6 +8,13 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+### Fixed
+
+- The doc comment on the module of a reference type links the type through
+  that module (`[`ClockRef`](clock_ref::ClockRef)`): the comment sits
+  outside the module, where the type is not in scope, so rustdoc with
+  warnings denied failed with `unresolved link`. Regenerate to get it.
+
 ## [0.4.0] - 2026-10-18
 
 ### Added
