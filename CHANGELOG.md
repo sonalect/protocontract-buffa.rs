@@ -8,6 +8,8 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-19
+
 ### Fixed
 
 - The doc comment on the module of a reference type links the type through
@@ -237,6 +239,7 @@ First release.
 ## Links
 
 - [Unreleased]
+- [0.4.1]
 - [0.4.0]
 - [0.3.1]
 - [0.3.0]
@@ -245,7 +248,8 @@ First release.
 - [0.2.0]
 - [0.1.0]
 
-[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.1
 [0.4.0]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.0
 [0.3.1]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.3.1
 [0.3.0]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.3.0

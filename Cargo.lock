@@ -196,7 +196,7 @@ dependencies = [
 
 [[package]]
 name = "contract-golden"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "buffa",
  "buffa-types",
@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "glossary-api"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "buffa",
  "protocontract",
@@ -384,7 +384,7 @@ dependencies = [
 
 [[package]]
 name = "glossary-app"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "glossary-api",
  "glossary-consumer",
@@ -393,14 +393,14 @@ dependencies = [
 
 [[package]]
 name = "glossary-consumer"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "glossary-api",
 ]
 
 [[package]]
 name = "glossary-provider"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "glossary-api",
 ]
@@ -649,7 +649,7 @@ dependencies = [
 
 [[package]]
 name = "protoc-gen-protocontract-buffa"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "buffa",
  "buffa-codegen",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "protocontract"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "buffa",
  "futures-core",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "refs-api"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "buffa",
  "buffa-types",
