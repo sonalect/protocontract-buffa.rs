@@ -23,7 +23,8 @@ pub(crate) const STREAM_BUFFER: usize = 16;
 /// - A unary call costs one hop to the blocking pool and back.
 /// - A reply stream is pulled on the blocking pool and handed over through
 ///   a channel that holds up to 16 items; dropping the stream stops the
-///   pull.
+///   pull: no `next` of the sync iterator starts after that, and one
+///   already running finishes.
 /// - An inbound stream reaches the sync method as an iterator whose `next`
 ///   waits on the blocking thread, so a bidirectional call can answer each
 ///   request as it arrives.
@@ -189,11 +190,17 @@ where
 /// Send each item of `items` until it ends, an `Err` item has been sent
 /// (an `Err` ends a stream), the reader goes away, or `next` panics (sent
 /// as a last [`RuntimeCode::Panicked`] item).
+///
+/// No `next` starts once the reader has gone; one already running then
+/// finishes, and its send fails.
 pub(crate) fn pump<X>(
     mut items: BoxIter<'static, Result<X, Error>>,
     sender: &mpsc::Sender<Result<X, Error>>,
 ) {
     loop {
+        if sender.is_closed() {
+            return;
+        }
         let item = match catch_unwind(AssertUnwindSafe(|| items.next())) {
             Ok(Some(item)) => item,
             Ok(None) => return,
@@ -257,5 +264,115 @@ impl<S: Stream> Iterator for StreamIter<S> {
 
     fn next(&mut self) -> Option<S::Item> {
         self.handle.block_on(next(&mut self.stream))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    use tokio::runtime::{Builder, Runtime};
+
+    use super::Offload;
+    use crate::stream::next;
+    use crate::{Blocking, Error};
+
+    /// The longest any wait in these tests may take.
+    const DEADLINE: Duration = Duration::from_secs(10);
+
+    /// An iterator that counts its `next` calls, holds one of them until
+    /// the test drops the gate's sender, and reports its own drop: the end
+    /// of the pump that owns it.
+    struct Probe {
+        calls: Arc<AtomicUsize>,
+        /// The call to hold, the sender that reports it running, and the
+        /// gate it waits on.
+        hold: Option<(usize, mpsc::Sender<()>, mpsc::Receiver<()>)>,
+        dropped: mpsc::Sender<()>,
+    }
+
+    impl Iterator for Probe {
+        type Item = Result<usize, Error>;
+
+        fn next(&mut self) -> Option<Result<usize, Error>> {
+            let call = self.calls.fetch_add(1, Ordering::SeqCst);
+            if let Some((held, running, gate)) = &self.hold
+                && call == *held
+            {
+                let _ = running.send(());
+                let _ = gate.recv_timeout(DEADLINE);
+            }
+            Some(Ok(call))
+        }
+    }
+
+    impl Drop for Probe {
+        fn drop(&mut self) {
+            let _ = self.dropped.send(());
+        }
+    }
+
+    /// A runtime with one blocking thread.
+    fn runtime() -> Runtime {
+        Builder::new_current_thread()
+            .max_blocking_threads(1)
+            .build()
+            .unwrap()
+    }
+
+    #[test]
+    fn feed_starts_no_item_after_its_reader_is_gone() {
+        let runtime = runtime();
+        // Hold the only blocking thread, so the pump waits in the queue
+        // until its reader is gone. Dropping `gate` lets it go.
+        let (gate, gated) = mpsc::channel::<()>();
+        let (busy, held) = mpsc::channel();
+        drop(runtime.spawn_blocking(move || {
+            let _ = busy.send(());
+            let _ = gated.recv_timeout(DEADLINE);
+        }));
+        held.recv_timeout(DEADLINE).unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (dropped, ended) = mpsc::channel();
+        let requests = Probe {
+            calls: Arc::clone(&calls),
+            hold: None,
+            dropped,
+        };
+        let blocking = Blocking::new((), runtime.handle().clone());
+        drop(Blocking::feed(&blocking, Box::new(requests)));
+        drop(gate);
+        ended.recv_timeout(DEADLINE).unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn reply_stream_finishes_the_running_item_and_starts_no_more() {
+        let runtime = runtime();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (running, is_running) = mpsc::channel();
+        let (gate, gated) = mpsc::channel::<()>();
+        let (dropped, ended) = mpsc::channel();
+        let replies = Probe {
+            calls: Arc::clone(&calls),
+            hold: Some((1, running, gated)),
+            dropped,
+        };
+        let offload = Offload::new((), runtime.handle().clone());
+        let mut stream = runtime
+            .block_on(Offload::server_streaming(&offload, move |()| {
+                Ok(Box::new(replies))
+            }))
+            .unwrap();
+        let first = runtime.block_on(next(&mut stream)).map(Result::unwrap);
+        assert_eq!(first, Some(0));
+        is_running.recv_timeout(DEADLINE).unwrap();
+        drop(stream);
+        drop(gate);
+        ended.recv_timeout(DEADLINE).unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
     }
 }

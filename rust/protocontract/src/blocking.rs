@@ -98,8 +98,8 @@ impl<T> Blocking<T> {
     }
 
     /// Pull `requests` on the runtime's blocking pool and return them as a
-    /// stream for an async method. Dropping the stream stops the pull; an
-    /// `Err` item ends it.
+    /// stream for an async method. Dropping the stream stops the pull: no
+    /// `next` of `requests` starts after that. An `Err` item ends it.
     pub fn feed<X: Send + 'static>(
         this: &Blocking<T>,
         requests: BoxIter<'static, Result<X, Error>>,

@@ -8,6 +8,18 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+### Fixed
+
+- A stream that `Offload` or `Blocking` pulls from a sync iterator on the
+  blocking pool (an `Offload` reply stream, a `Blocking::feed` request
+  stream) no longer calls the iterator's `next` once its reader is gone.
+  Before, after each item was handed over the pull called `next` again
+  without checking, and only the send after it found the stream dropped:
+  one more unit of the implementation's work ran for nobody, possibly
+  after the caller had dropped the stream and moved on. A `next` already
+  running when the stream is dropped still finishes. No code change is
+  needed; update `protocontract`.
+
 ## [0.4.1] - 2026-10-19
 
 ### Fixed
