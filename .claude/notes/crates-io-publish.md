@@ -23,6 +23,10 @@
   Release was published at 16:02 UTC with all six binaries while the API
   still showed two jobs `in_progress`; the job states lagged, the work
   was done (the artifacts' times and the release job's `needs` show it).
+- 0.4.2 was published on 23 October 2026 from the tag `v0.4.2`, by the
+  owner by hand: the auto-mode permission check denied `cargo publish` to
+  Claude as a public, irreversible action. Allow it explicitly if Claude
+  is to publish the next one.
 - Every release publishes both crates by hand: step 4 of
   `.claude/skills/versioning/SKILL.md`, run by the owner or at his request.
 - The README's shields.io badges (version, license) cache a crate's
