@@ -1,5 +1,5 @@
 {
-  "checksum": "0055fc6735e30cafae5c8f3ff4d5da8ec8af0471a8cf8063f074567666eef400",
+  "checksum": "cfd653e6d104cb5b6216cd6d2fc3d31c408ccfbbea53ca5f2c1024bbb4ce4619",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -920,7 +920,7 @@
       ],
       "version": "0.9.1"
     },
-    "contract-golden 0.4.1": {
+    "contract-golden 0.4.2": {
       "common_attrs": {
         "crate_features": [
           "default",
@@ -964,7 +964,7 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     "core-foundation-sys 0.8.7": {
       "common_attrs": {
@@ -1834,7 +1834,7 @@
       ],
       "version": "0.4.3"
     },
-    "glossary-api 0.4.1": {
+    "glossary-api 0.4.2": {
       "common_attrs": {
         "deps": [
           {
@@ -1860,9 +1860,9 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
-    "glossary-app 0.4.1": {
+    "glossary-app 0.4.2": {
       "common_attrs": {
         "edition": "2024"
       },
@@ -1874,9 +1874,9 @@
       "package_url": "https://github.com/sonalect/protocontract-buffa.rs",
       "repository": null,
       "targets": [],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
-    "glossary-consumer 0.4.1": {
+    "glossary-consumer 0.4.2": {
       "common_attrs": {
         "edition": "2024"
       },
@@ -1896,9 +1896,9 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
-    "glossary-provider 0.4.1": {
+    "glossary-provider 0.4.2": {
       "common_attrs": {
         "edition": "2024"
       },
@@ -1918,7 +1918,7 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     "hashbrown 0.15.5": {
       "common_attrs": {
@@ -3055,7 +3055,7 @@
       ],
       "version": "1.0.107"
     },
-    "protoc-gen-protocontract-buffa 0.4.1": {
+    "protoc-gen-protocontract-buffa 0.4.2": {
       "common_attrs": {
         "deps": [
           {
@@ -3105,9 +3105,9 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
-    "protocontract 0.4.1": {
+    "protocontract 0.4.2": {
       "common_attrs": {
         "crate_features": [
           "tokio"
@@ -3144,7 +3144,7 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     "protovalidate-buffa 0.7.2": {
       "common_attrs": {
@@ -3506,7 +3506,7 @@
       ],
       "version": "1.0.27"
     },
-    "refs-api 0.4.1": {
+    "refs-api 0.4.2": {
       "common_attrs": {
         "crate_features": [
           "default",
@@ -3558,7 +3558,7 @@
           }
         }
       ],
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     "regex 1.13.1": {
       "common_attrs": {
@@ -5515,13 +5515,13 @@
     "serde_json 1.0.154"
   ],
   "workspace_members": {
-    "contract-golden 0.4.1": "rust/golden",
-    "glossary-api 0.4.1": "examples/glossary/api",
-    "glossary-app 0.4.1": "examples/glossary/app",
-    "glossary-consumer 0.4.1": "examples/glossary/consumer",
-    "glossary-provider 0.4.1": "examples/glossary/provider",
-    "protoc-gen-protocontract-buffa 0.4.1": "rust/protoc-gen-protocontract-buffa",
-    "protocontract 0.4.1": "rust/protocontract",
-    "refs-api 0.4.1": "examples/refs/api"
+    "contract-golden 0.4.2": "rust/golden",
+    "glossary-api 0.4.2": "examples/glossary/api",
+    "glossary-app 0.4.2": "examples/glossary/app",
+    "glossary-consumer 0.4.2": "examples/glossary/consumer",
+    "glossary-provider 0.4.2": "examples/glossary/provider",
+    "protoc-gen-protocontract-buffa 0.4.2": "rust/protoc-gen-protocontract-buffa",
+    "protocontract 0.4.2": "rust/protocontract",
+    "refs-api 0.4.2": "examples/refs/api"
   }
 }

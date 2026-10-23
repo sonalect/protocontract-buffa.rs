@@ -8,6 +8,8 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-23
+
 ### Fixed
 
 - A stream that `Offload` or `Blocking` pulls from a sync iterator on the
@@ -19,6 +21,11 @@ changes to the generated code or the runtime bump the minor.
   after the caller had dropped the stream and moved on. A `next` already
   running when the stream is dropped still finishes. No code change is
   needed; update `protocontract`.
+
+### Changed
+
+- Build pin: `bazel_utils` 0.4.2. It adds plugin versions to its catalog
+  and changes nothing this build uses; the generated code is the same.
 
 ## [0.4.1] - 2026-10-19
 
@@ -251,6 +258,7 @@ First release.
 ## Links
 
 - [Unreleased]
+- [0.4.2]
 - [0.4.1]
 - [0.4.0]
 - [0.3.1]
@@ -260,7 +268,8 @@ First release.
 - [0.2.0]
 - [0.1.0]
 
-[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.2
 [0.4.1]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.1
 [0.4.0]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.0
 [0.3.1]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.3.1
