@@ -7,6 +7,8 @@ modules:
   - path: examples/refs/proto
   - path: rust/protocontract/proto
   - path: proto
+  # protovalidate's protos, staged by `mise run protos`; not linted.
+  - path: .cache/proto
 lint:
   use:
     - STANDARD
@@ -20,6 +22,8 @@ lint:
     - RPC_REQUEST_STANDARD_NAME
     - RPC_RESPONSE_STANDARD_NAME
     - SERVICE_SUFFIX
+  ignore:
+    - .cache/proto
 breaking:
   use:
     - FILE

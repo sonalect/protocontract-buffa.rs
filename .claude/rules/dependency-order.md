@@ -5,6 +5,14 @@ Do not append at the bottom.
 
 ## Cargo.toml
 
+- Every dependency, external or path, is declared once, in the root
+  `[workspace.dependencies]`, with its version and default features. A
+  crate takes it with `{ workspace = true }`, adding only `features`,
+  `optional`, or (edition 2024) `default-features`. No version in a member
+  manifest (owner, 21 November 2026). A crate only an example uses gets a
+  comment there saying so.
+- An unused dependency fails the build: `[workspace.lints.cargo]`
+  `unused_dependencies = "deny"` (Cargo 1.100). Remove it, do not allow it.
 - `[workspace.members]`: alphabetical by path.
 - `[workspace.dependencies]`, `[dependencies]`, `[dev-dependencies]`,
   `[build-dependencies]`, per-target tables: two zones, decided by the

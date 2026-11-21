@@ -28,7 +28,9 @@ by hand.
   `deny:rust` (cargo-deny, `deny.toml`), `lint:markdown` (markdownlint
   over every `*.md`, `.claude/` included), and `test`. `mise tasks`
   lists them; each runs alone as `mise run <task>`. `mise run format`
-  fixes Rust and proto formatting.
+  fixes Rust and proto formatting. The proto tasks first run `protos`,
+  which stages protovalidate's protos under `.cache/proto` (git-ignored);
+  run it once before opening the protos in an editor with Buf LSP.
 
 ## Tools
 

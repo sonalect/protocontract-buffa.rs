@@ -4,6 +4,7 @@ edition = "2024";
 
 package refs.v1;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "protocontract/v1/options.proto";
 
@@ -15,8 +16,8 @@ service Clock {
 
 // A moment.
 message Tick {
-  // Milliseconds since the Unix epoch.
-  int64 unix_ms = 1;
+  // Milliseconds since the Unix epoch, not before it.
+  int64 unix_ms = 1 [(buf.validate.field).int64.gte = 0];
 }
 
 // A clock to read the time from.
@@ -24,22 +25,37 @@ message ClockRef {
   option (protocontract.v1.service) = "refs.v1.Clock";
 }
 
-// An alarm: data and references in one message.
+// An alarm: data and references in one message, with protovalidate's
+// rules on both. A rule on a reference field sees the field, not the
+// implementation: `required` is met by any reference that is set, bound or
+// not, and the reference itself is always valid.
 message Alarm {
-  // What the alarm is for.
-  string label = 1;
-  // The clock the alarm reads.
-  ClockRef clock = 2;
-  // Clocks to fall back on.
-  repeated ClockRef backups = 3;
+  // What the alarm is for: set and not empty. A field with presence is
+  // checked only when set, so `min_len` alone would let a missing label by.
+  string label = 1 [(buf.validate.field) = {
+    required: true
+    string: {min_len: 1}
+  }];
+  // The clock the alarm reads; must be set.
+  ClockRef clock = 2 [(buf.validate.field).required = true];
+  // Clocks to fall back on, three at most.
+  repeated ClockRef backups = 3 [(buf.validate.field).repeated.max_items = 3];
 }
 
 // Keeps alarms.
 service Alarms {
-  // Set an alarm.
+  // Set an alarm. Fails with `ALARMS_ERROR_CODE_INVALID_ALARM` when the
+  // alarm breaks a rule of `Alarm`.
   rpc Set(Alarm) returns (google.protobuf.Empty);
   // Use this clock from now on.
   rpc UseClock(ClockRef) returns (google.protobuf.Empty);
   // The clock in use.
   rpc CurrentClock(google.protobuf.Empty) returns (ClockRef);
+}
+
+// The failures of `Alarms` a caller may branch on.
+enum AlarmsErrorCode {
+  ALARMS_ERROR_CODE_UNSPECIFIED = 0;
+  // The alarm breaks a rule of `Alarm`; the source names each violation.
+  ALARMS_ERROR_CODE_INVALID_ALARM = 1;
 }

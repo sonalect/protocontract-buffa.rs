@@ -21,6 +21,21 @@ changes to the generated code or the runtime bump the minor.
 
 ### Changed
 
+- `examples/refs` validates for real: `Alarm` and `Tick` declare
+  protovalidate rules (a required, non-empty label, a required clock, at
+  most three backups, no time before the epoch), `Alarms.Set` fails with
+  the new `ALARMS_ERROR_CODE_INVALID_ALARM`, and the tests check each rule.
+  The README describes `validate=true` with an example. protovalidate's
+  protos come from mise (`http:protovalidate` 1.2.2, staged by
+  `mise run protos`), not from the Buf Schema Registry.
+- The example's protovalidate moves to `protovalidate-buffa` 0.8.0 with
+  `protoc-gen-protovalidate-buffa` 0.11.0 (released together: `time`
+  replaces `chrono`). The `Validate` impl that `validate=true` emits is
+  unchanged and builds against both.
+
+- Every dependency is declared once, in the root `[workspace.dependencies]`,
+  and an unused dependency fails the build (`cargo::unused_dependencies`,
+  Cargo 1.100). Nothing changes for a consumer of the crates.
 - The repository builds with Cargo and [mise](https://mise.jdx.dev)
   instead of Bazel: `mise run gate` is the gate (generated files, clippy,
   rustfmt, cargo-deny, buf lint and format, markdownlint, tests),

@@ -38,7 +38,10 @@ buf = "1.74.0"
 protoc-gen-buffa = { version = "0.9.2", matching = "protoc-gen-buffa-v", bin = "protoc-gen-buffa", platforms = { windows-arm64 = { asset_pattern = "protoc-gen-buffa-v{{ version }}-windows-x86_64.exe" } } }
 protoc-gen-buffa-packaging = { version = "0.9.2", matching = "protoc-gen-buffa-packaging-v", bin = "protoc-gen-buffa-packaging", platforms = { windows-arm64 = { asset_pattern = "protoc-gen-buffa-packaging-v{{ version }}-windows-x86_64.exe" } } }
 protoc-gen-connect-rust = { version = "0.9.1", bin = "protoc-gen-connect-rust", platforms = { windows-arm64 = { asset_pattern = "protoc-gen-connect-rust-v{{ version }}-windows-x86_64.exe" } } }
-protoc-gen-protovalidate-buffa = { version = "0.10.4", version_prefix = "protoc-gen-protovalidate-buffa-v" }
+protoc-gen-protovalidate-buffa = { version = "0.11.0", version_prefix = "protoc-gen-protovalidate-buffa-v" }
+# The protos of protovalidate's rules (`buf/validate/validate.proto`), which
+# examples/refs imports; the task `protos` stages them for buf.
+"http:protovalidate" = { version = "1.2.2", url = "https://github.com/bufbuild/protovalidate/releases/download/v{{ version }}/protovalidate-{{ version }}.tar.gz" }
 
 # Rust: the checks of the dependency graph (deny.toml).
 cargo-deny = "0.20.2"
@@ -48,8 +51,24 @@ node = "26.13.0"
 "npm:markdownlint-cli2" = "0.24.0"
 
 # Every task script is bash: on Windows, the bash of Git for Windows.
+[tasks.protos]
+description = "Stage the protovalidate protos the examples import under .cache/proto"
+shell = "bash -c"
+# Only the `.proto` files, at their import paths: the archive carries other
+# files too. Nothing comes from the Buf Schema Registry.
+run = '''
+set -eu
+src=$(mise where http:protovalidate)
+if command -v cygpath >/dev/null; then src=$(cygpath -u "$src"); fi
+out=.cache/proto
+rm -rf "$out"
+mkdir -p "$out/buf/validate"
+cp "$src"/proto/protovalidate/buf/validate/*.proto "$out/buf/validate/"
+'''
+
 [tasks.generate]
 description = "Write the golden files and the examples' generated code with the plugin built here"
+depends = ["protos"]
 shell = "bash -c"
 run = '''
 set -eu
@@ -70,6 +89,7 @@ done
 
 [tasks."check:generate"]
 description = "Fail while a checked-in generated tree differs from what the plugins write"
+depends = ["protos"]
 shell = "bash -c"
 run = '''
 set -eu
@@ -93,6 +113,7 @@ done
 
 [tasks."lint:proto"]
 description = "buf lint, and buf format check, over every proto"
+depends = ["protos"]
 shell = "bash -c"
 run = '''
 set -eu
@@ -153,6 +174,7 @@ run = "cargo fmt --all"
 
 [tasks."format:proto"]
 description = "Format every proto in place"
+depends = ["protos"]
 run = "buf format --write"
 
 [tasks.format]

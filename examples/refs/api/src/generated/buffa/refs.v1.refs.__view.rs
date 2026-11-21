@@ -4,7 +4,7 @@
 /// A moment.
 #[derive(Clone, Debug, Default)]
 pub struct TickView<'a> {
-    /// Milliseconds since the Unix epoch.
+    /// Milliseconds since the Unix epoch, not before it.
     ///
     /// Field 1: `unix_ms`
     pub unix_ms: ::core::option::Option<i64>,
@@ -209,7 +209,7 @@ impl TickOwnedView {
     pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
         self.0.into_bytes()
     }
-    /// Milliseconds since the Unix epoch.
+    /// Milliseconds since the Unix epoch, not before it.
     ///
     /// Field 1: `unix_ms`
     #[must_use]
@@ -470,20 +470,24 @@ impl ::serde::Serialize for ClockRefOwnedView {
         ::serde::Serialize::serialize(&self.0, __s)
     }
 }
-/// An alarm: data and references in one message.
+/// An alarm: data and references in one message, with protovalidate's
+/// rules on both. A rule on a reference field sees the field, not the
+/// implementation: `required` is met by any reference that is set, bound or
+/// not, and the reference itself is always valid.
 #[derive(Clone, Debug, Default)]
 pub struct AlarmView<'a> {
-    /// What the alarm is for.
+    /// What the alarm is for: set and not empty. A field with presence is
+    /// checked only when set, so `min_len` alone would let a missing label by.
     ///
     /// Field 1: `label`
     pub label: ::core::option::Option<&'a str>,
-    /// The clock the alarm reads.
+    /// The clock the alarm reads; must be set.
     ///
     /// Field 2: `clock`
     pub clock: ::buffa::MessageFieldView<
         crate::traits::clock_ref::__buffa::view::ClockRefView<'a>,
     >,
-    /// Clocks to fall back on.
+    /// Clocks to fall back on, three at most.
     ///
     /// Field 3: `backups`
     pub backups: ::buffa::RepeatedView<
@@ -786,14 +790,15 @@ impl AlarmOwnedView {
     pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
         self.0.into_bytes()
     }
-    /// What the alarm is for.
+    /// What the alarm is for: set and not empty. A field with presence is
+    /// checked only when set, so `min_len` alone would let a missing label by.
     ///
     /// Field 1: `label`
     #[must_use]
     pub fn label(&self) -> ::core::option::Option<&'_ str> {
         self.0.reborrow().label
     }
-    /// The clock the alarm reads.
+    /// The clock the alarm reads; must be set.
     ///
     /// Field 2: `clock`
     #[must_use]
@@ -804,7 +809,7 @@ impl AlarmOwnedView {
     > {
         &self.0.reborrow().clock
     }
-    /// Clocks to fall back on.
+    /// Clocks to fall back on, three at most.
     ///
     /// Field 3: `backups`
     #[must_use]

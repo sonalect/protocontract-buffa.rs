@@ -108,6 +108,43 @@ checksum_source = "mise-versions"
 url = "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-pc-windows-msvc.tar.gz"
 url_api = "https://api.github.com/repos/EmbarkStudios/cargo-deny/releases/assets/471599057"
 
+[[tools."http:protovalidate"]]
+version = "1.2.2"
+backend = "http:protovalidate"
+specifiers = ["1.2.2"]
+
+[tools."http:protovalidate"."platforms.linux-arm64"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.linux-arm64-musl"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.linux-x64"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.linux-x64-musl"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.macos-arm64"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.macos-x64"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.windows-arm64"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
+[tools."http:protovalidate"."platforms.windows-x64"]
+checksum = "sha256:94a5df7b3f33fe8153c2b8f753bfcbe2968773553cccea800d3228e0d938e9b2"
+url = "https://github.com/bufbuild/protovalidate/releases/download/v1.2.2/protovalidate-1.2.2.tar.gz"
+
 [[tools.node]]
 version = "26.13.0"
 backend = "core:node"
@@ -343,57 +380,57 @@ url_api = "https://api.github.com/repos/anthropics/connect-rust/releases/assets/
 provenance = "github-attestations"
 
 [[tools.protoc-gen-protovalidate-buffa]]
-version = "0.10.4"
+version = "0.11.0"
 backend = "github:mathematic-inc/protovalidate-buffa"
-specifiers = ["0.10.4"]
+specifiers = ["0.11.0"]
 
 [tools.protoc-gen-protovalidate-buffa.options]
 version_prefix = "protoc-gen-protovalidate-buffa-v"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.linux-arm64"]
-checksum = "sha256:a51d55801844079de280a63f5737fe97a92e02945041113ab9323f2335423c1e"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543325"
+checksum = "sha256:9d7c501b5fef306439249317c18d77dddf32a0f9882d91f5595387f49241421f"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435181"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.linux-arm64-musl"]
-checksum = "sha256:dbc05dc277d2b89db9a9b411eef360ddd2d63458c172598b9ad356145574e9f9"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-aarch64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543314"
+checksum = "sha256:a4c06f4c5d722e9ce9c6264b28018a8be23e933afcd41b07d6083365a0b39089"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435172"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.linux-x64"]
-checksum = "sha256:832496ed62408e89db06d775b79ab99f6cc7b847b48bee0219b168d48e9dbde2"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543309"
+checksum = "sha256:4f823e513bd042ba798e95fd6d905d21000b993b92c67561d0d0d6a8005587f8"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435184"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.linux-x64-musl"]
-checksum = "sha256:b49eb906b6c77e482b1f5dde5641e49650a49a89daaea9405a34b5ec14e8e32b"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543311"
+checksum = "sha256:571af406265ce1082b0375e9239ba8a6a9fdbc6b1f4be3844e6dea0da0243964"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435177"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.macos-arm64"]
-checksum = "sha256:6a686d89d223e212ee791acee9babb47a11237fad0b536bb30c9defde1f6e603"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543316"
+checksum = "sha256:3ad61425b6ad139a26771d5f62a1beace26a27e9049752ae5d00985f2337d916"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435183"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.macos-x64"]
-checksum = "sha256:0e2bc6ec8649f8facf0050d587ffc8befa2396453ad1630f22cbc775c0c36a98"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-x86_64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543315"
+checksum = "sha256:cbc426181682a6dfb3af5d857aa132fa100eeb7d711e30a5b891995c7e8d20f4"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435180"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.windows-arm64"]
-checksum = "sha256:4cd88051db44774f1c65fc955d7b4f400204d0fd090803e041c4d917369044c4"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-aarch64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543318"
+checksum = "sha256:8afe85944f7618e9e226a2cc249c4a6b88d39980635d3f0ff535367669c6e024"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-aarch64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435171"
 provenance = "github-attestations"
 
 [tools.protoc-gen-protovalidate-buffa."platforms.windows-x64"]
-checksum = "sha256:79d06459a8fa6f306f166a01408f24728bf9083d0d4dacebbeb2cdec09e2db4b"
-url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.10.4/protoc-gen-protovalidate-buffa-0.10.4-x86_64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/639543319"
+checksum = "sha256:6166ad45786f25f62597225c7fbe19326900983bb5163af1c178884dc828e955"
+url = "https://github.com/mathematic-inc/protovalidate-buffa/releases/download/protoc-gen-protovalidate-buffa-v0.11.0/protoc-gen-protovalidate-buffa-0.11.0-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/mathematic-inc/protovalidate-buffa/releases/assets/759435166"
 provenance = "github-attestations"

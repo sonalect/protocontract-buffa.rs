@@ -452,9 +452,43 @@ let tick = clock.now(Empty::default())?;
   it names a service of its own package. Its type sits in its own module
   (`clock_ref`), which the run checks is free.
 - **With buffa's `json=true`**, pass `json=true` to this plugin too, and
-  depend on `serde`. **Next to `protoc-gen-protovalidate-buffa`**, which
-  calls `validate()` on every message field, pass `validate=true`: the
-  reference type implements `Validate`, always valid.
+  depend on `serde`.
+- **With protovalidate.** `protoc-gen-protovalidate-buffa` writes a
+  `validate()` for every message, and it calls `validate()` on each
+  message field, a reference included. Pass `validate=true` to this plugin
+  next to it: the reference type then implements `Validate` (from
+  `protovalidate-buffa`) and is always valid, since it carries no data.
+  Rules on the field that holds a reference apply as to any message field:
+
+  ```protobuf
+  import "buf/validate/validate.proto";
+
+  message Alarm {
+    string label = 1 [(buf.validate.field) = {
+      required: true
+      string: {min_len: 1}
+    }];
+    ClockRef clock = 2 [(buf.validate.field).required = true];
+    repeated ClockRef backups = 3 [(buf.validate.field).repeated.max_items = 3];
+  }
+  ```
+
+  ```rust
+  use protovalidate_buffa::Validate;
+
+  alarm.validate().map_err(|violations| {
+      Failure::new(AlarmsErrorCode::InvalidAlarm, "the alarm breaks a rule")
+          .with_source(violations)
+  })?;
+  ```
+
+  A rule sees the field, not the implementation: `required` is met by any
+  reference that is set, bound or not, and an unbound one still fails with
+  `UNBOUND` when a form is taken. Pair the plugin with the runtime it
+  generates for (`protoc-gen-protovalidate-buffa` 0.11 with
+  `protovalidate-buffa` 0.8, as this repository does); without
+  protovalidate, leave `validate` off and the generated code does not
+  depend on it.
 
 `options.proto` ships inside the `protocontract` crate, under `proto/`
 (`proto/protocontract/v1/options.proto`), so whatever has the crate has
@@ -462,7 +496,7 @@ the file. Add that directory to the `buf` module that compiles your
 contract, next to your own protos.
 
 [`examples/refs`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/refs)
-shows all of it in use, protovalidate included;
+shows all of it in use, protovalidate's rules included;
 [`examples/glossary`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/glossary)
 hands a provider to its consumer through a reference, from a catalog
 service (`Glossaries`) that keeps glossaries by topic.

@@ -367,7 +367,8 @@ the plugin takes the same one, so every field, request, and reply of
 - **Validation.** `protoc-gen-protovalidate-buffa` calls `validate()` on
   every message field, so with `validate=true` a reference type implements
   `Validate` too: it carries no data and is always valid. A rule on the
-  field itself (`required`) applies as to any message field.
+  field itself (`required`) applies as to any message field, and sees only
+  whether the field is set: an unbound reference meets `required`.
 - **Limits.** The view path is a buffa convention, not an API: a buffa
   release may move it, and the golden checks catch that. buffa's views are
   needed (`views` on, buffa's default).
@@ -633,8 +634,9 @@ connect-rust takes.
 - **O6.** Answered 18 October 2026: `protoc-gen-protovalidate-buffa`
   0.10.4 validates a message field by calling `validate()` on it, so a
   reference type needs `Validate`; `validate=true` emits it, always valid.
-  `examples/refs` runs protovalidate next to the plugin and validates a
-  message that holds references.
+  `examples/refs` runs protovalidate next to the plugin, declares rules on
+  `Alarm` and `Tick`, and tests each of them (21 November 2026; the
+  example had run the generator without a rule before).
 - **O7.** Open: how a consumer's own `buf` module finds
   `protocontract/v1/options.proto`. The file ships in the crate; a Bazel
   consumer that takes the crate through crate_universe exposes it with an

@@ -25,3 +25,6 @@ rustc-ice-*.txt
 
 # Node (markdownlint-cli2)
 node_modules/
+
+# What `mise run protos` stages on every run: protovalidate's protos.
+/.cache/

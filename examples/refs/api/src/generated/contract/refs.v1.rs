@@ -132,12 +132,13 @@ impl<T: ClockAsync + 'static> ClockSync for ::protocontract::Blocking<T> {
 }
 /// Keeps alarms.
 ///
-/// Blocking form of `refs.v1.Alarms`: each method returns when the call is done. Streams are iterators.
+/// Blocking form of `refs.v1.Alarms`: each method returns when the call is done. Streams are iterators. It fails with the codes of `AlarmsErrorCode` (`refs.v1.AlarmsErrorCode`): branch on them with `Error::is` or `Error::code_as`.
 ///
 /// Implement it for work that computes; implement `AlarmsAsync` for work that waits on I/O. The trait is dyn-compatible: hold an implementation as `Arc<dyn AlarmsSync>` to choose it at run time. `Blocking` gives an `AlarmsAsync` implementation this form.
 #[allow(clippy::wrong_self_convention)]
 pub trait AlarmsSync: ::core::marker::Send + ::core::marker::Sync {
-    /// Set an alarm.
+    /// Set an alarm. Fails with `ALARMS_ERROR_CODE_INVALID_ALARM` when the
+    /// alarm breaks a rule of `Alarm`.
     fn set(
         &self,
         alarm: crate::proto::refs::v1::Alarm,
@@ -164,12 +165,13 @@ pub trait AlarmsSync: ::core::marker::Send + ::core::marker::Sync {
 }
 /// Keeps alarms.
 ///
-/// Async form of `refs.v1.Alarms`: each method returns a future of the result. Streams are `Stream`s.
+/// Async form of `refs.v1.Alarms`: each method returns a future of the result. Streams are `Stream`s. It fails with the codes of `AlarmsErrorCode` (`refs.v1.AlarmsErrorCode`): branch on them with `Error::is` or `Error::code_as`.
 ///
 /// Implement it with plain `async fn` for work that waits on I/O; implement `AlarmsSync` for work that computes. A reply stream must not borrow `self`. Generic callers (`impl AlarmsAsync`) call it without boxing; `DynAlarmsAsync` holds an implementation chosen at run time. `Inline` and `Offload` give a `AlarmsSync` implementation this form.
 #[allow(clippy::wrong_self_convention)]
 pub trait AlarmsAsync: ::core::marker::Send + ::core::marker::Sync {
-    /// Set an alarm.
+    /// Set an alarm. Fails with `ALARMS_ERROR_CODE_INVALID_ALARM` when the
+    /// alarm breaks a rule of `Alarm`.
     fn set(
         &self,
         alarm: crate::proto::refs::v1::Alarm,

@@ -39,7 +39,12 @@ futures-core = "0.3.34"
 heck = "0.5.0"
 prettyplease = "0.3.0"
 proc-macro2 = "1.0.107"
+# Only examples/refs uses it, next to protoc-gen-protovalidate-buffa.
+protovalidate-buffa = { version = "0.8.0", default-features = false }
 quote = "1.0.47"
+# serde and serde_json: only examples/refs (`json=true`).
+serde = "1.0.229"
+serde_json = "1.0.154"
 syn = { version = "3.0.9", features = ["full"] }
 tokio = { version = "1.53.3", default-features = false }
 
@@ -48,6 +53,10 @@ warnings = "deny"
 
 [workspace.lints.clippy]
 all = "deny"
+
+# A dependency a manifest names but no target of the crate uses.
+[workspace.lints.cargo]
+unused_dependencies = "deny"
 
 [profile.release]
 codegen-units = 1

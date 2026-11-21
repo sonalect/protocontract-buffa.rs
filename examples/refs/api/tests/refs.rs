@@ -1,12 +1,14 @@
 //! A reference to a service in a message field, a request, and a reply,
-//! through both forms, and what encoding does to it.
+//! through both forms, what encoding does to it, and protovalidate's rules
+//! on a message that holds references.
 
 use std::sync::{Arc, Mutex};
 
 use buffa::{Message, MessageView};
 use buffa_types::google::protobuf::Empty;
-use protocontract::{Error, Inline, RuntimeCode};
-use refs_api::proto::refs::v1::{Alarm, AlarmView, Tick};
+use protocontract::{Error, Failure, Inline, RuntimeCode};
+use protovalidate_buffa::{Validate, ValidationError};
+use refs_api::proto::refs::v1::{Alarm, AlarmView, AlarmsErrorCode, Tick};
 use refs_api::traits::clock_ref::ClockRef;
 use refs_api::traits::{AlarmsAsync, AlarmsSync, ClockAsync, ClockSync};
 
@@ -36,6 +38,12 @@ struct Keeper {
 
 impl AlarmsSync for Keeper {
     fn set(&self, alarm: Alarm) -> Result<Empty, Error> {
+        // The rules of `Alarm`, from the proto: the contract's code for the
+        // caller to branch on, protovalidate's violations as the source.
+        alarm.validate().map_err(|violations| {
+            Failure::new(AlarmsErrorCode::InvalidAlarm, "the alarm breaks a rule")
+                .with_source(violations)
+        })?;
         let clock = alarm.clock.as_option().cloned().unwrap_or_default();
         let clock = clock.to_sync()?;
         self.seen
@@ -220,16 +228,99 @@ fn debug_shows_the_form() {
     );
 }
 
-#[test]
-fn a_message_that_holds_references_validates() {
-    use protovalidate_buffa::Validate;
+/// Each violation of `error` as `field: rule`.
+fn broken(error: &ValidationError) -> Vec<String> {
+    error
+        .violations
+        .iter()
+        .map(|violation| {
+            let field = violation
+                .field
+                .elements
+                .iter()
+                .filter_map(|element| element.field_name.as_deref())
+                .collect::<Vec<_>>()
+                .join(".");
+            format!("{field}: {}", violation.rule_id)
+        })
+        .collect()
+}
 
-    let bound = alarm(
+#[test]
+fn an_alarm_that_keeps_the_rules_validates() {
+    let good = alarm(
         ClockRef::from_sync(Fixed(1)),
         vec![ClockRef::from_async(Ticking(2))],
     );
-    bound.validate().unwrap();
+    good.validate().unwrap();
+    // A reference carries no data, so it is always valid: `validate=true`
+    // gives it the `Validate` that the alarm's validator calls on it.
     ClockRef::default().validate().unwrap();
+    Tick::default().with_unix_ms(0).validate().unwrap();
+}
+
+#[test]
+fn each_rule_of_the_alarm_holds() {
+    let clock = || ClockRef::from_sync(Fixed(1));
+
+    let mut no_label = alarm(clock(), vec![]);
+    no_label.label = None;
+    assert_eq!(
+        broken(&no_label.validate().unwrap_err()),
+        ["label: required"]
+    );
+
+    let empty_label = alarm(clock(), vec![]).with_label("");
+    assert_eq!(
+        broken(&empty_label.validate().unwrap_err()),
+        ["label: string.min_len"]
+    );
+
+    let no_clock = Alarm::default().with_label("wake");
+    assert_eq!(
+        broken(&no_clock.validate().unwrap_err()),
+        ["clock: required"]
+    );
+
+    let four_backups = alarm(clock(), (0..4).map(|_| clock()).collect());
+    assert_eq!(
+        broken(&four_backups.validate().unwrap_err()),
+        ["backups: repeated.max_items"]
+    );
+
+    let before_the_epoch = Tick::default().with_unix_ms(-1);
+    assert_eq!(
+        broken(&before_the_epoch.validate().unwrap_err()),
+        ["unix_ms: int64.gte"]
+    );
+}
+
+#[test]
+fn a_rule_sees_the_field_not_the_implementation() {
+    // An unbound reference is set, so it meets `required`: the rules cannot
+    // tell whether a reference holds an implementation. Using it can.
+    let unbound = alarm(ClockRef::default(), vec![]);
+    unbound.validate().unwrap();
+    let error = Keeper::default().set(unbound).unwrap_err();
+    assert!(error.is(RuntimeCode::Unbound), "{error}");
+}
+
+#[test]
+fn set_refuses_an_alarm_that_breaks_a_rule() {
+    let keeper = Keeper::default();
+    let error = keeper
+        .set(alarm(ClockRef::from_sync(Fixed(1)), vec![]).with_label(""))
+        .unwrap_err();
+    assert!(error.is(AlarmsErrorCode::InvalidAlarm), "{error}");
+    let source = std::error::Error::source(&error).map(ToString::to_string);
+    assert!(
+        source
+            .as_deref()
+            .is_some_and(|source| source.contains("label")),
+        "{source:?}"
+    );
+    // Nothing was read from the clock.
+    assert!(keeper.seen.lock().unwrap().is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread")]
