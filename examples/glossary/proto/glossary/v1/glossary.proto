@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package glossary.v1;
 
+import "google/protobuf/empty.proto";
+import "protocontract/v1/options.proto";
+
 // A glossary of terms: the contract between the provider that holds the
 // terms and the consumers that look them up.
 //
@@ -47,4 +50,45 @@ enum GlossaryErrorCode {
   GLOSSARY_ERROR_CODE_UNKNOWN_TERM = 2;
   // The glossary cannot answer now; the same call may succeed later.
   GLOSSARY_ERROR_CODE_BUSY = 3;
+}
+
+// The glossaries of an application, one per topic: a consumer asks for the
+// glossary of its topic and gets a reference to whichever implementation
+// was put there.
+service Glossaries {
+  // The glossary of a topic. Fails with
+  // `GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC`.
+  rpc Open(Topic) returns (GlossaryRef);
+
+  // Put a glossary under its topic, in place of any there before. Fails
+  // with `GLOSSARIES_ERROR_CODE_NO_GLOSSARY` when the shelf holds none.
+  rpc Add(Shelf) returns (google.protobuf.Empty);
+}
+
+// A glossary to call: a reference to an implementation of `Glossary` in
+// this process, not data. It does not survive encoding.
+message GlossaryRef {
+  option (protocontract.v1.service) = "glossary.v1.Glossary";
+}
+
+// A topic, matched without regard to case.
+message Topic {
+  string name = 1;
+}
+
+// A place in `Glossaries`: a topic and the glossary kept under it.
+message Shelf {
+  // The topic, matched without regard to case.
+  string topic = 1;
+  // The glossary for the topic.
+  GlossaryRef glossary = 2;
+}
+
+// The failures of `Glossaries` a caller may branch on.
+enum GlossariesErrorCode {
+  GLOSSARIES_ERROR_CODE_UNSPECIFIED = 0;
+  // No glossary is kept under the topic.
+  GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC = 1;
+  // The shelf holds no glossary: the reference is missing or unbound.
+  GLOSSARIES_ERROR_CODE_NO_GLOSSARY = 2;
 }

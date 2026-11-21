@@ -28,7 +28,8 @@ permissions:
   contents: read
 
 env:
-  MISE_VERSION: 2026.10.24
+  # mise.lock is lockfile format 4, which mise reads from 2026.11.11.
+  MISE_VERSION: 2026.11.12
   PLUGIN: protoc-gen-protocontract-buffa
 
 defaults:
@@ -85,38 +86,38 @@ jobs:
           - platform: linux-amd64
             runner: ubuntu-26.04
             mise: linux-x64
-            mise_sha256: be97dbac1c0b1fe08bd8c0cf01690f4273ea9aa02ad766b98d4e20c43eb9059d
+            mise_sha256: 9c12c24f5eac6b6357e5265e2629166cc3005459037f5d747680a99e375ff2ab
             target: x86_64-unknown-linux-musl
             file: linux-x86_64
           - platform: linux-arm64
             runner: ubuntu-26.04-arm
             mise: linux-arm64
-            mise_sha256: ae1151a87d70146119f68f7378001a12f09d2a38853087ed6139b7527a55f148
+            mise_sha256: 52f4a75495bde5571d5d0a45b4d9b5227c2c099b92f9be85328569e67b12c553
             target: aarch64-unknown-linux-musl
             file: linux-aarch64
           - platform: macos-amd64
             runner: macos-26-intel
             mise: macos-x64
-            mise_sha256: 399e46f059f8ffa3f5a4321513996f13100f2bc2513e5464ba666ed4c117039a
+            mise_sha256: 14954fb2f451636a53a04c025e1bf896f5f47f3fd19aaac9f6ff792fdfdbc18d
             target: x86_64-apple-darwin
             file: darwin-x86_64
           - platform: macos-arm64
             runner: macos-26
             mise: macos-arm64
-            mise_sha256: ac0ee145cb145affe3ea60623a4abdb253e5ad1f938def299e633e816c0b8523
+            mise_sha256: 87b2bd5a1b88a612ee8856df23499404b115870b5a8a8e008763c7cd51c8d412
             target: aarch64-apple-darwin
             file: darwin-aarch64
           - platform: windows-amd64
             runner: windows-2025
             mise: windows-x64.zip
-            mise_sha256: cfffec40ded67f1d04039eb388827ad8de0a0089d5c9d9abc57c6c85c0aedc71
+            mise_sha256: 706fecc47fba7e4da63f59dccd3262502c59e4699035548f1113df95fcfca96e
             target: x86_64-pc-windows-msvc
             file: windows-x86_64.exe
             exe: .exe
           - platform: windows-arm64
             runner: windows-11-arm
             mise: windows-arm64.zip
-            mise_sha256: c534719a9f00577ed928327424ec524d62f57c1a19c4cbbbe342fe691361cdf4
+            mise_sha256: bee83ff472860af33d1cf81a64e6effe34f219d76c7a924df332c8762a938db9
             target: aarch64-pc-windows-msvc
             file: windows-aarch64.exe
             exe: .exe

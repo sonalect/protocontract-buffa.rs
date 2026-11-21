@@ -2,14 +2,16 @@
 //! definitions of the terms it marks.
 //!
 //! It depends on the contract (`glossary-api`) only. The application hands
-//! it some implementation of [`GlossarySync`]; which one, this crate
-//! never learns. Its tests use stubs in place of a real provider.
+//! it some implementation of [`GlossarySync`], or [`GlossariesSync`] to
+//! find one by topic; which one, this crate never learns. Its tests use
+//! stubs in place of a real provider.
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use glossary_api::{
-    Context, Error, ErrorCode, GlossaryErrorCode, GlossarySync, Prefix, Term, Word,
+    Context, Error, ErrorCode, GlossariesSync, GlossaryErrorCode, GlossarySync, Prefix, Term,
+    Topic, Word,
 };
 
 /// The consumer's own failures, outside the contract: a Rust enum is an
@@ -62,6 +64,30 @@ impl Annotator {
             attempts: 3,
             pause: Duration::from_millis(50),
         }
+    }
+
+    /// An annotator over the glossary `glossaries` keeps on `topic`.
+    ///
+    /// `Glossaries` replies with a reference, `GlossaryRef`, to whichever
+    /// implementation it keeps there; the annotator takes its blocking
+    /// form and holds that from then on.
+    ///
+    /// # Errors
+    ///
+    /// `GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC` when no glossary is kept on
+    /// `topic`, `UNBOUND` for a reference that holds no implementation, or
+    /// `NO_RUNTIME` for an async implementation the blocking form cannot
+    /// run; each with the topic on its stack.
+    pub fn open(glossaries: &dyn GlossariesSync, topic: &str) -> Result<Annotator, Error> {
+        let request = Topic {
+            name: topic.to_owned(),
+            ..Default::default()
+        };
+        let glossary = glossaries
+            .open(request)
+            .and_then(|glossary| glossary.to_sync())
+            .with_context(|| format!("open `{topic}`"))?;
+        Ok(Annotator::new(glossary))
     }
 
     /// This annotator, trying a retryable call `attempts` times (at least
@@ -173,7 +199,8 @@ mod tests {
     use std::time::Duration;
 
     use glossary_api::{
-        BoxIter, Error, Failure, GlossaryErrorCode, GlossarySync, Prefix, Term, Word,
+        BoxIter, Empty, Error, Failure, GlossariesErrorCode, GlossariesSync, GlossaryErrorCode,
+        GlossaryRef, GlossarySync, Prefix, RuntimeCode, Shelf, Term, Topic, Word,
     };
 
     use super::{Annotator, AnnotatorCode};
@@ -297,5 +324,53 @@ mod tests {
         let error = annotator(Stub::new(0)).index("p").unwrap_err();
         assert!(error.is(GlossaryErrorCode::Busy), "{error}");
         assert_eq!(error.stack(), ["index `p`"]);
+    }
+
+    /// A stub `Glossaries`: a stub glossary on `stub`, an unbound
+    /// reference on `unbound`, no glossary on any other topic.
+    struct Shelves;
+
+    impl GlossariesSync for Shelves {
+        fn open(&self, topic: Topic) -> Result<GlossaryRef, Error> {
+            match topic.name.as_str() {
+                "stub" => Ok(GlossaryRef::from_shared(Stub::new(0))),
+                "unbound" => Ok(GlossaryRef::default()),
+                _ => Err(Error::new(
+                    GlossariesErrorCode::UnknownTopic,
+                    "no such topic",
+                )),
+            }
+        }
+
+        fn add(&self, _shelf: Shelf) -> Result<Empty, Error> {
+            Ok(Empty::default())
+        }
+    }
+
+    #[test]
+    fn opens_the_glossary_of_a_topic() {
+        let annotated = Annotator::open(&Shelves, "stub")
+            .unwrap()
+            .annotate("[[provider]]")
+            .unwrap();
+        assert_eq!(annotated.text, "provider[1]");
+    }
+
+    #[test]
+    fn an_unknown_topic_carries_the_topic() {
+        let Err(error) = Annotator::open(&Shelves, "chemistry") else {
+            panic!("a topic with no glossary opened");
+        };
+        assert!(error.is(GlossariesErrorCode::UnknownTopic), "{error}");
+        assert_eq!(error.stack(), ["open `chemistry`"]);
+    }
+
+    #[test]
+    fn an_unbound_reference_fails_to_open() {
+        let Err(error) = Annotator::open(&Shelves, "unbound") else {
+            panic!("an unbound reference opened");
+        };
+        assert!(error.is(RuntimeCode::Unbound), "{error}");
+        assert_eq!(error.stack(), ["open `unbound`"]);
     }
 }

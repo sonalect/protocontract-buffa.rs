@@ -462,7 +462,10 @@ the file. Add that directory to the `buf` module that compiles your
 contract, next to your own protos.
 
 [`examples/refs`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/refs)
-shows all of it in use, protovalidate included.
+shows all of it in use, protovalidate included;
+[`examples/glossary`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/glossary)
+hands a provider to its consumer through a reference, from a catalog
+service (`Glossaries`) that keeps glossaries by topic.
 
 ## Example
 

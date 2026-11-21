@@ -2,16 +2,21 @@
 
 Two components that talk through a Contract, in one process: a
 **provider** that holds terms and a **consumer** that annotates text with
-them. Neither knows the other; both know only the contract.
+them. Neither knows the other; both know only the contract. A second
+service, `Glossaries`, keeps glossaries by topic and hands them out as
+**references to a service**: the consumer asks for the glossary of its
+topic and gets back whichever implementation was put there.
 
 ```text
-proto/glossary/v1/glossary.proto     the contract: service, messages, error codes
+proto/glossary/v1/glossary.proto     the contract: services, messages, a reference, error codes
         │  mise run generate   (from the repository root)
         ▼
-api/        glossary-api       generated messages and traits, runtime re-exports
-provider/   glossary-provider  MemoryGlossary implements GlossarySync
-consumer/   glossary-consumer  Annotator calls an Arc<dyn GlossarySync>
-app/        glossary-app       hands the provider to the consumer; prints the result
+api/        glossary-api       generated messages, traits, GlossaryRef; runtime re-exports
+provider/   glossary-provider  MemoryGlossary implements GlossarySync,
+                               MemoryGlossaries implements GlossariesSync
+consumer/   glossary-consumer  Annotator calls an Arc<dyn GlossarySync>,
+                               opened through GlossariesSync by topic
+app/        glossary-app       shelves the glossaries, opens one for the consumer; prints the result
 ```
 
 Run it:
@@ -27,8 +32,10 @@ A Provider[1] implements the Contract[2]; a Consumer[3] calls it. Neither needs 
   [3] Consumer: A component that calls a contract without knowing who provides it.
   not in the glossary: prototype
 Terms on "pro": Protobuf, Provider
+Terms in Rust: Crate, Trait
 error: annotate ` `: GLOSSARY_ERROR_CODE_EMPTY_TERM: the word is empty
   code GLOSSARY_ERROR_CODE_EMPTY_TERM (1), retryable false, stack ["annotate ` `"]
+error: open `Chemistry`: GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC: no glossary on `Chemistry`
 ```
 
 ## The contract
@@ -78,11 +85,50 @@ The enum is named `<Service>ErrorCode`, so the plugin finds it and names it
 in both traits' rustdoc: a consumer reading `GlossarySync` learns there
 which codes the service fails with.
 
+### A reference to a service
+
+The same file declares a second service, whose methods take and return a
+glossary itself, not data about one:
+
+```protobuf
+service Glossaries {
+  rpc Open(Topic) returns (GlossaryRef);
+  rpc Add(Shelf) returns (google.protobuf.Empty);
+}
+
+message GlossaryRef {
+  option (protocontract.v1.service) = "glossary.v1.Glossary";
+}
+
+message Topic { string name = 1; }
+message Shelf { string topic = 1; GlossaryRef glossary = 2; }
+```
+
+The option, declared in `protocontract/v1/options.proto` (shipped in the
+`protocontract` crate), marks `GlossaryRef` as a reference to an
+implementation of `Glossary`. The plugin emits a Rust type for it,
+`GlossaryRef`, that holds the implementation in the form it was given,
+blocking or async:
+
+```rust
+GlossaryRef::from_sync(MemoryGlossary::new(TERMS))  // or from_shared, from_async, from_dyn
+glossary.to_sync()?                                  // Arc<dyn GlossarySync>
+glossary.to_async_inline()?                          // DynGlossaryAsync; to_async_offload with tokio
+```
+
+So `Open` returns one, `Shelf` carries one in a field, and the traits of
+`Glossaries` take and give `GlossaryRef` like any other message. A
+reference lives in one process: encoded it becomes an empty message, and
+taking a form of a decoded or default one fails with `UNBOUND`.
+
 [`buf.gen.yaml`](buf.gen.yaml) runs `protoc-gen-buffa` for the messages
 and `protoc-gen-protocontract-buffa` for the traits; both write into
-`api/src/generated`, checked in. [`api/src/lib.rs`](api/src/lib.rs) mounts
-them and re-exports the runtime types (`Error`, `Failure`, `Context`, …),
-so the other crates depend on `glossary-api` alone.
+`api/src/generated`, checked in. Both plugins get
+`extern_path=.glossary.v1.GlossaryRef=crate::traits::glossary_ref::GlossaryRef`,
+so every message and trait that names the reference holds the plugin's
+type. [`api/src/lib.rs`](api/src/lib.rs) mounts them and re-exports the
+runtime types (`Error`, `Failure`, `Context`, …), so the other crates
+depend on `glossary-api` alone.
 
 ## The provider
 
@@ -132,6 +178,25 @@ Two ways to fail:
   failure has more to say (here, the closest known term). `?` or `.into()`
   turns it into an `Error`.
 
+`MemoryGlossaries` implements `GlossariesSync` over the references
+themselves: it never learns which implementation each one holds. `Open`
+hands out a clone of the reference, so the caller and the shelf share one
+implementation; `Add` refuses a shelf whose reference is missing or holds
+nothing (`is_bound`), which would otherwise fail only later, in the hands
+of whoever opens the topic:
+
+```rust
+impl GlossariesSync for MemoryGlossaries {
+    fn open(&self, topic: Topic) -> Result<GlossaryRef, Error> {
+        let key = topic.name.trim().to_lowercase();
+        self.shelves().get(&key).cloned().ok_or_else(|| {
+            Error::new(GlossariesErrorCode::UnknownTopic, format!("no glossary on `{}`", topic.name))
+        })
+    }
+    // add: see the source
+}
+```
+
 ## The consumer
 
 [`consumer/src/lib.rs`](consumer/src/lib.rs) holds an
@@ -159,10 +224,19 @@ match self.define(marked) {
   never closed.
 - `Annotator::index` calls `terms` (RPC `Terms`; method names are snake
   case) and reads the stream term by term.
+- `Annotator::open` asks `Glossaries` for the glossary of a topic and
+  takes the blocking form of the reference it gets back:
 
-Its tests use stub providers (busy, broken streams) in place of
-`MemoryGlossary`: the consumer is tested against the
-contract alone.
+  ```rust
+  let glossary = glossaries
+      .open(request)
+      .and_then(|glossary| glossary.to_sync())
+      .with_context(|| format!("open `{topic}`"))?;
+  ```
+
+Its tests use stub providers (busy, broken streams, a stub `Glossaries`
+with an unbound reference) in place of the real ones: the consumer is
+tested against the contract alone.
 
 ## The application
 
@@ -170,11 +244,15 @@ contract alone.
 sides:
 
 ```rust
-let glossary: Arc<dyn GlossarySync> = Arc::new(MemoryGlossary::new(TERMS));
-let annotator = Annotator::new(glossary);
+let glossaries = MemoryGlossaries::new();
+glossaries.add(shelf("Contracts", MemoryGlossary::new(TERMS)))?;
+glossaries.add(shelf("Rust", MemoryGlossary::new(RUST_TERMS)))?;
+let annotator = Annotator::open(&glossaries, "contracts")?;
 ```
 
-Another provider goes in the same place. An async consumer would take a
+`shelf` wraps each glossary in `GlossaryRef::from_sync`. Another provider
+goes in the same place, and `Annotator::new` still takes an
+`Arc<dyn GlossarySync>` directly when there is no catalog in between. An async consumer would take a
 `DynGlossaryAsync` instead, and the application would hand it
 `Offload::new(MemoryGlossary::new(TERMS), handle)`; the bridges come with
 `glossary-api`'s `tokio` feature.

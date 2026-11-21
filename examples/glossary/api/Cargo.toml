@@ -15,6 +15,7 @@ tokio = ["protocontract/tokio"]
 [dependencies]
 protocontract = { workspace = true }
 buffa = { workspace = true }
+buffa-types = { workspace = true }
 
 [lints]
 workspace = true

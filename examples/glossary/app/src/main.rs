@@ -1,17 +1,17 @@
 //! The glossary application: the one place that knows both the provider
-//! and the consumer, and hands the one to the other.
+//! and the consumer, and hands the one to the other: it keeps each glossary
+//! under its topic in `Glossaries`, and the consumer opens the topic it
+//! needs.
 //!
 //! ```text
 //! cargo run -p glossary-app
 //! ```
 
+use glossary_api::{GlossariesSync, GlossaryRef, MessageField, Shelf};
+use glossary_consumer::Annotator;
+use glossary_provider::{MemoryGlossaries, MemoryGlossary};
 use std::io::Write;
 use std::process::ExitCode;
-use std::sync::Arc;
-
-use glossary_api::GlossarySync;
-use glossary_consumer::Annotator;
-use glossary_provider::MemoryGlossary;
 
 const TERMS: [(&str, &str); 4] = [
     (
@@ -32,6 +32,14 @@ const TERMS: [(&str, &str); 4] = [
     ),
 ];
 
+const RUST_TERMS: [(&str, &str); 2] = [
+    (
+        "Crate",
+        "A unit of Rust code that Cargo builds and publishes.",
+    ),
+    ("Trait", "A set of methods a type implements."),
+];
+
 const TEXT: &str = "A [[provider]] implements the [[contract]]; a [[consumer]] calls it. \
                     Neither needs a [[prototype]] of the other.";
 
@@ -46,12 +54,17 @@ fn main() -> ExitCode {
     }
 }
 
-/// Wire the provider into the consumer, and show what the consumer gets.
+/// Wire the providers into the consumer, and show what the consumer gets.
 fn run(out: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
-    // The provider, behind the contract's trait: from here on nobody sees
-    // its type. Another provider would go in the same place.
-    let glossary: Arc<dyn GlossarySync> = Arc::new(MemoryGlossary::new(TERMS));
-    let annotator = Annotator::new(glossary);
+    // Each glossary goes to `Glossaries` as a reference, `GlossaryRef`:
+    // from here on nobody sees its type. Another provider would go in the
+    // same place.
+    let glossaries = MemoryGlossaries::new();
+    glossaries.add(shelf("Contracts", MemoryGlossary::new(TERMS)))?;
+    glossaries.add(shelf("Rust", MemoryGlossary::new(RUST_TERMS)))?;
+
+    // The consumer opens its topic and gets a reference back.
+    let annotator = Annotator::open(&glossaries, "contracts")?;
 
     let annotated = annotator.annotate(TEXT)?;
     writeln!(out, "{}", annotated.text)?;
@@ -66,6 +79,11 @@ fn run(out: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
         out,
         "Terms on \"pro\": {}",
         annotator.index("pro")?.join(", ")
+    )?;
+    writeln!(
+        out,
+        "Terms in Rust: {}",
+        Annotator::open(&glossaries, "Rust")?.index("")?.join(", ")
     )?;
 
     // A failure the contract names: the consumer passes it on with the
@@ -84,7 +102,22 @@ fn run(out: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
             )?;
         }
     }
+
+    // A topic no glossary is kept on: `Glossaries` names the failure, and
+    // the consumer adds the topic to the stack.
+    if let Err(error) = Annotator::open(&glossaries, "Chemistry") {
+        writeln!(out, "error: {error}")?;
+    }
     Ok(())
+}
+
+/// A shelf with a reference to `glossary` on `topic`.
+fn shelf(topic: &str, glossary: MemoryGlossary) -> Shelf {
+    Shelf {
+        topic: topic.to_owned(),
+        glossary: MessageField::some(GlossaryRef::from_sync(glossary)),
+        ..Default::default()
+    }
 }
 
 #[cfg(test)]
@@ -103,8 +136,10 @@ A Provider[1] implements the Contract[2]; a Consumer[3] calls it. Neither needs 
   [3] Consumer: A component that calls a contract without knowing who provides it.
   not in the glossary: prototype
 Terms on \"pro\": Protobuf, Provider
+Terms in Rust: Crate, Trait
 error: annotate ` `: GLOSSARY_ERROR_CODE_EMPTY_TERM: the word is empty
   code GLOSSARY_ERROR_CODE_EMPTY_TERM (1), retryable false, stack [\"annotate ` `\"]
+error: open `Chemistry`: GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC: no glossary on `Chemistry`
 ";
         assert_eq!(out, expected);
     }

@@ -1,16 +1,19 @@
-//! A provider of the glossary contract: terms held in memory.
+//! A provider of the glossary contract: terms held in memory, and
+//! glossaries kept by topic.
 //!
-//! It implements [`GlossarySync`] and knows nothing of who calls
-//! it. A consumer receives it as `Arc<dyn GlossarySync>` from the
-//! application and never names this crate.
+//! [`MemoryGlossary`] implements [`GlossarySync`], [`MemoryGlossaries`]
+//! implements [`GlossariesSync`], and neither knows anything of who calls
+//! it. A consumer receives them through the contract's traits and
+//! references, and never names this crate.
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::ops::Bound;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use glossary_api::{
-    BoxIter, Code, Error, Fault, GlossaryErrorCode, GlossarySync, Prefix, Term, Word,
+    BoxIter, Code, Empty, Error, Fault, GlossariesErrorCode, GlossariesSync, GlossaryErrorCode,
+    GlossaryRef, GlossarySync, Prefix, Shelf, Term, Topic, Word,
 };
 
 /// A glossary over a fixed set of terms, looked up without regard to case.
@@ -160,14 +163,67 @@ impl Fault for UnknownTerm {
     }
 }
 
+/// Glossaries kept by topic, in memory: whichever implementation each
+/// reference holds, this one never learns.
+///
+/// [`GlossariesSync::open`] hands out a clone of the reference kept under
+/// the topic: the caller and the shelf then share one implementation.
+#[derive(Debug, Default)]
+pub struct MemoryGlossaries {
+    /// The references by lowercase topic.
+    shelves: Mutex<BTreeMap<String, GlossaryRef>>,
+}
+
+impl MemoryGlossaries {
+    /// No glossary on any topic.
+    pub fn new() -> MemoryGlossaries {
+        MemoryGlossaries::default()
+    }
+
+    /// The references by topic. A panic of another caller while it held
+    /// the lock leaves the map whole, so the lock is taken all the same.
+    fn shelves(&self) -> std::sync::MutexGuard<'_, BTreeMap<String, GlossaryRef>> {
+        self.shelves.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+impl GlossariesSync for MemoryGlossaries {
+    fn open(&self, topic: Topic) -> Result<GlossaryRef, Error> {
+        let key = topic.name.trim().to_lowercase();
+        self.shelves().get(&key).cloned().ok_or_else(|| {
+            Error::new(
+                GlossariesErrorCode::UnknownTopic,
+                format!("no glossary on `{}`", topic.name),
+            )
+        })
+    }
+
+    fn add(&self, shelf: Shelf) -> Result<Empty, Error> {
+        // A reference that holds no implementation would only fail later,
+        // in the hands of whoever opens the topic: refuse it here.
+        let Some(glossary) = shelf.glossary.into_option().filter(GlossaryRef::is_bound) else {
+            return Err(Error::new(
+                GlossariesErrorCode::NoGlossary,
+                format!("the shelf for `{}` holds no glossary", shelf.topic),
+            ));
+        };
+        self.shelves()
+            .insert(shelf.topic.trim().to_lowercase(), glossary);
+        Ok(Empty::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::ops::Bound;
     use std::sync::Arc;
 
-    use glossary_api::{GlossaryErrorCode, GlossarySync, Prefix, Word};
+    use glossary_api::{
+        GlossariesErrorCode, GlossariesSync, GlossaryErrorCode, GlossaryRef, GlossarySync,
+        MessageField, Prefix, Shelf, Topic, Word,
+    };
 
-    use super::{MemoryGlossary, TermStream, UnknownTerm};
+    use super::{MemoryGlossaries, MemoryGlossary, TermStream, UnknownTerm};
 
     fn glossary() -> MemoryGlossary {
         MemoryGlossary::new([
@@ -244,5 +300,84 @@ mod tests {
             .map(|term| term.unwrap().name)
             .collect();
         assert_eq!(terms, ["Protobuf", "Provider"]);
+    }
+
+    fn shelf(topic: &str, glossary: GlossaryRef) -> Shelf {
+        Shelf {
+            topic: topic.to_owned(),
+            glossary: MessageField::some(glossary),
+            ..Default::default()
+        }
+    }
+
+    fn topic(name: &str) -> Topic {
+        Topic {
+            name: name.to_owned(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn opens_the_glossary_kept_under_a_topic() {
+        let glossaries = MemoryGlossaries::new();
+        let shared: Arc<dyn GlossarySync> = Arc::new(glossary());
+        glossaries
+            .add(shelf(
+                "Contracts",
+                GlossaryRef::from_shared(Arc::clone(&shared)),
+            ))
+            .unwrap();
+        let opened = glossaries.open(topic(" contracts ")).unwrap();
+        // The same implementation, not a copy of it.
+        assert_eq!(opened, GlossaryRef::from_shared(shared));
+        let term = opened
+            .to_sync()
+            .unwrap()
+            .define(Word {
+                text: "consumer".to_owned(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(term.name, "Consumer");
+    }
+
+    #[test]
+    fn a_later_shelf_replaces_the_glossary() {
+        let glossaries = MemoryGlossaries::new();
+        glossaries
+            .add(shelf("rust", GlossaryRef::from_sync(glossary())))
+            .unwrap();
+        let other =
+            GlossaryRef::from_sync(MemoryGlossary::new([("Crate", "A unit of Rust code.")]));
+        glossaries.add(shelf("Rust", other.clone())).unwrap();
+        assert_eq!(glossaries.open(topic("rust")).unwrap(), other);
+    }
+
+    #[test]
+    fn an_unknown_topic_is_refused() {
+        let error = MemoryGlossaries::new()
+            .open(topic("Chemistry"))
+            .unwrap_err();
+        assert!(error.is(GlossariesErrorCode::UnknownTopic), "{error}");
+        assert_eq!(
+            error.to_string(),
+            "GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC: no glossary on `Chemistry`"
+        );
+    }
+
+    #[test]
+    fn a_shelf_without_a_glossary_is_refused() {
+        let glossaries = MemoryGlossaries::new();
+        for empty in [
+            Shelf {
+                topic: "none".to_owned(),
+                ..Default::default()
+            },
+            shelf("unbound", GlossaryRef::default()),
+        ] {
+            let error = glossaries.add(empty).unwrap_err();
+            assert!(error.is(GlossariesErrorCode::NoGlossary), "{error}");
+        }
+        assert!(glossaries.open(topic("unbound")).is_err());
     }
 }

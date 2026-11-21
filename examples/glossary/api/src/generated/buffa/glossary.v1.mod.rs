@@ -33,3 +33,15 @@ pub use self::__buffa::view::PrefixOwnedView;
 pub use self::__buffa::view::TermView;
 #[doc(inline)]
 pub use self::__buffa::view::TermOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::GlossaryRefView;
+#[doc(inline)]
+pub use self::__buffa::view::GlossaryRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TopicView;
+#[doc(inline)]
+pub use self::__buffa::view::TopicOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ShelfView;
+#[doc(inline)]
+pub use self::__buffa::view::ShelfOwnedView;

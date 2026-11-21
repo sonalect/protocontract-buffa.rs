@@ -9,7 +9,8 @@
 # the golden files and the examples' generated code with the plugin built
 # from this tree; `mise run format` formats everything in place.
 
-min_version = "2026.10.24"
+# mise.lock is lockfile format 4, which an older mise cannot read.
+min_version = "2026.11.11"
 
 [settings]
 lockfile = true

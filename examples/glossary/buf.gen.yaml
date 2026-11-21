@@ -5,6 +5,9 @@
 # the sync one. The async traits need no runtime, but the bridges `Offload`
 # and `Blocking` need tokio, so `gate_tokio_feature` puts them behind the
 # crate's `tokio` feature, off by default: the example builds without tokio.
+# `GlossaryRef` is a reference to `glossary.v1.Glossary`: protocontract-buffa
+# emits its type in the module `glossary_ref` of the package's traits, and
+# both plugins map the message there (`extern_path`).
 version: v2
 inputs:
   - directory: examples/glossary/proto
@@ -12,6 +15,8 @@ plugins:
   - local: protoc-gen-buffa
     out: examples/glossary/api/src/generated/buffa
     strategy: all
+    opt:
+      - extern_path=.glossary.v1.GlossaryRef=crate::traits::glossary_ref::GlossaryRef
   - local: protoc-gen-buffa-packaging
     out: examples/glossary/api/src/generated/buffa
     strategy: all
@@ -20,5 +25,6 @@ plugins:
     strategy: all
     opt:
       - buffa_module=crate::proto
+      - extern_path=.glossary.v1.GlossaryRef=crate::traits::glossary_ref::GlossaryRef
       - file_per_package
       - gate_tokio_feature

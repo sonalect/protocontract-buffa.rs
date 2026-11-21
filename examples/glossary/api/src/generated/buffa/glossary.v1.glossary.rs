@@ -81,6 +81,82 @@ impl ::buffa::Enumeration for GlossaryErrorCode {
         ]
     }
 }
+/// The failures of `Glossaries` a caller may branch on.
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[repr(i32)]
+pub enum GlossariesErrorCode {
+    GLOSSARIES_ERROR_CODE_UNSPECIFIED = 0i32,
+    /// No glossary is kept under the topic.
+    GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC = 1i32,
+    /// The shelf holds no glossary: the reference is missing or unbound.
+    GLOSSARIES_ERROR_CODE_NO_GLOSSARY = 2i32,
+}
+impl GlossariesErrorCode {
+    ///Idiomatic alias for [`Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Unspecified: Self = Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED;
+    ///Idiomatic alias for [`Self::GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const UnknownTopic: Self = Self::GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC;
+    ///Idiomatic alias for [`Self::GLOSSARIES_ERROR_CODE_NO_GLOSSARY`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const NoGlossary: Self = Self::GLOSSARIES_ERROR_CODE_NO_GLOSSARY;
+}
+impl ::core::default::Default for GlossariesErrorCode {
+    fn default() -> Self {
+        Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED
+    }
+}
+impl ::buffa::Enumeration for GlossariesErrorCode {
+    fn from_i32(value: i32) -> ::core::option::Option<Self> {
+        match value {
+            0i32 => ::core::option::Option::Some(Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED),
+            1i32 => {
+                ::core::option::Option::Some(Self::GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC)
+            }
+            2i32 => ::core::option::Option::Some(Self::GLOSSARIES_ERROR_CODE_NO_GLOSSARY),
+            _ => ::core::option::Option::None,
+        }
+    }
+    fn to_i32(&self) -> i32 {
+        *self as i32
+    }
+    fn proto_name(&self) -> &'static str {
+        match self {
+            Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED => {
+                "GLOSSARIES_ERROR_CODE_UNSPECIFIED"
+            }
+            Self::GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC => {
+                "GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC"
+            }
+            Self::GLOSSARIES_ERROR_CODE_NO_GLOSSARY => {
+                "GLOSSARIES_ERROR_CODE_NO_GLOSSARY"
+            }
+        }
+    }
+    fn from_proto_name(name: &str) -> ::core::option::Option<Self> {
+        match name {
+            "GLOSSARIES_ERROR_CODE_UNSPECIFIED" => {
+                ::core::option::Option::Some(Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED)
+            }
+            "GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC" => {
+                ::core::option::Option::Some(Self::GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC)
+            }
+            "GLOSSARIES_ERROR_CODE_NO_GLOSSARY" => {
+                ::core::option::Option::Some(Self::GLOSSARIES_ERROR_CODE_NO_GLOSSARY)
+            }
+            _ => ::core::option::Option::None,
+        }
+    }
+    fn values() -> &'static [Self] {
+        &[
+            Self::GLOSSARIES_ERROR_CODE_UNSPECIFIED,
+            Self::GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC,
+            Self::GLOSSARIES_ERROR_CODE_NO_GLOSSARY,
+        ]
+    }
+}
 /// A word to look up, matched without regard to case.
 #[derive(Clone, PartialEq, Default)]
 pub struct Word {
@@ -389,6 +465,322 @@ impl ::buffa::Message for Term {
 }
 impl ::buffa::ExtensionSet for Term {
     const PROTO_FQN: &'static str = "glossary.v1.Term";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+/// A glossary to call: a reference to an implementation of `Glossary` in
+/// this process, not data. It does not survive encoding.
+#[derive(Clone, PartialEq, Default)]
+pub struct GlossaryRef {
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for GlossaryRef {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("GlossaryRef").finish()
+    }
+}
+impl GlossaryRef {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.GlossaryRef";
+}
+::buffa::impl_default_instance!(GlossaryRef);
+impl ::buffa::MessageName for GlossaryRef {
+    const PACKAGE: &'static str = "glossary.v1";
+    const NAME: &'static str = "GlossaryRef";
+    const FULL_NAME: &'static str = "glossary.v1.GlossaryRef";
+    const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.GlossaryRef";
+}
+impl ::buffa::Message for GlossaryRef {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for GlossaryRef {
+    const PROTO_FQN: &'static str = "glossary.v1.GlossaryRef";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+/// A topic, matched without regard to case.
+#[derive(Clone, PartialEq, Default)]
+pub struct Topic {
+    /// Field 1: `name`
+    pub name: ::buffa::alloc::string::String,
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for Topic {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Topic").field("name", &self.name).finish()
+    }
+}
+impl Topic {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.Topic";
+}
+::buffa::impl_default_instance!(Topic);
+impl ::buffa::MessageName for Topic {
+    const PACKAGE: &'static str = "glossary.v1";
+    const NAME: &'static str = "Topic";
+    const FULL_NAME: &'static str = "glossary.v1.Topic";
+    const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.Topic";
+}
+impl ::buffa::Message for Topic {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.name.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.name) as u64;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.name, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.name, buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.name.clear();
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for Topic {
+    const PROTO_FQN: &'static str = "glossary.v1.Topic";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+/// A place in `Glossaries`: a topic and the glossary kept under it.
+#[derive(Clone, PartialEq, Default)]
+pub struct Shelf {
+    /// The topic, matched without regard to case.
+    ///
+    /// Field 1: `topic`
+    pub topic: ::buffa::alloc::string::String,
+    /// The glossary for the topic.
+    ///
+    /// Field 2: `glossary`
+    pub glossary: ::buffa::MessageField<
+        crate::traits::glossary_ref::GlossaryRef,
+        ::buffa::Inline<crate::traits::glossary_ref::GlossaryRef>,
+    >,
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for Shelf {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Shelf")
+            .field("topic", &self.topic)
+            .field("glossary", &self.glossary)
+            .finish()
+    }
+}
+impl Shelf {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.Shelf";
+}
+::buffa::impl_default_instance!(Shelf);
+impl ::buffa::MessageName for Shelf {
+    const PACKAGE: &'static str = "glossary.v1";
+    const NAME: &'static str = "Shelf";
+    const FULL_NAME: &'static str = "glossary.v1.Shelf";
+    const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.Shelf";
+}
+impl ::buffa::Message for Shelf {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.topic.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.topic) as u64;
+        }
+        if self.glossary.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.glossary.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.topic.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.topic, buf);
+        }
+        if self.glossary.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                2u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.glossary.write_to(__cache, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.topic, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.glossary.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.topic.clear();
+        self.glossary = ::buffa::MessageField::none();
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for Shelf {
+    const PROTO_FQN: &'static str = "glossary.v1.Shelf";
     fn unknown_fields(&self) -> &::buffa::UnknownFields {
         &self.__buffa_unknown_fields
     }

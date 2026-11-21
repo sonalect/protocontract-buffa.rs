@@ -10,6 +10,15 @@ changes to the generated code or the runtime bump the minor.
 
 ## [0.4.3] - 2026-11-21
 
+### Added
+
+- `examples/glossary` uses references to a service: a catalog service,
+  `Glossaries`, keeps glossaries by topic, takes one as a reference in a
+  message field (`Add(Shelf)`), and returns one (`Open(Topic)` gives a
+  `GlossaryRef`). The consumer opens its topic and annotates through the
+  glossary it gets back; the application wires it all. No change to the
+  plugin or the runtime.
+
 ### Changed
 
 - The repository builds with Cargo and [mise](https://mise.jdx.dev)

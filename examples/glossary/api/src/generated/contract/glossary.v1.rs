@@ -301,3 +301,506 @@ impl<T: GlossaryAsync + 'static> GlossarySync for ::protocontract::Blocking<T> {
         )
     }
 }
+/// The glossaries of an application, one per topic: a consumer asks for the
+/// glossary of its topic and gets a reference to whichever implementation
+/// was put there.
+///
+/// Blocking form of `glossary.v1.Glossaries`: each method returns when the call is done. Streams are iterators. It fails with the codes of `GlossariesErrorCode` (`glossary.v1.GlossariesErrorCode`): branch on them with `Error::is` or `Error::code_as`.
+///
+/// Implement it for work that computes; implement `GlossariesAsync` for work that waits on I/O. The trait is dyn-compatible: hold an implementation as `Arc<dyn GlossariesSync>` to choose it at run time. `Blocking` gives an `GlossariesAsync` implementation this form.
+#[allow(clippy::wrong_self_convention)]
+pub trait GlossariesSync: ::core::marker::Send + ::core::marker::Sync {
+    /// The glossary of a topic. Fails with
+    /// `GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC`.
+    fn open(
+        &self,
+        topic: crate::proto::glossary::v1::Topic,
+    ) -> ::core::result::Result<
+        crate::traits::glossary_ref::GlossaryRef,
+        ::protocontract::Error,
+    >;
+    /// Put a glossary under its topic, in place of any there before. Fails
+    /// with `GLOSSARIES_ERROR_CODE_NO_GLOSSARY` when the shelf holds none.
+    fn add(
+        &self,
+        shelf: crate::proto::glossary::v1::Shelf,
+    ) -> ::core::result::Result<
+        ::buffa_types::google::protobuf::Empty,
+        ::protocontract::Error,
+    >;
+}
+/// The glossaries of an application, one per topic: a consumer asks for the
+/// glossary of its topic and gets a reference to whichever implementation
+/// was put there.
+///
+/// Async form of `glossary.v1.Glossaries`: each method returns a future of the result. Streams are `Stream`s. It fails with the codes of `GlossariesErrorCode` (`glossary.v1.GlossariesErrorCode`): branch on them with `Error::is` or `Error::code_as`.
+///
+/// Implement it with plain `async fn` for work that waits on I/O; implement `GlossariesSync` for work that computes. A reply stream must not borrow `self`. Generic callers (`impl GlossariesAsync`) call it without boxing; `DynGlossariesAsync` holds an implementation chosen at run time. `Inline` and `Offload` give a `GlossariesSync` implementation this form.
+#[allow(clippy::wrong_self_convention)]
+pub trait GlossariesAsync: ::core::marker::Send + ::core::marker::Sync {
+    /// The glossary of a topic. Fails with
+    /// `GLOSSARIES_ERROR_CODE_UNKNOWN_TOPIC`.
+    fn open(
+        &self,
+        topic: crate::proto::glossary::v1::Topic,
+    ) -> impl ::core::future::Future<
+        Output = ::core::result::Result<
+            crate::traits::glossary_ref::GlossaryRef,
+            ::protocontract::Error,
+        >,
+    > + ::core::marker::Send;
+    /// Put a glossary under its topic, in place of any there before. Fails
+    /// with `GLOSSARIES_ERROR_CODE_NO_GLOSSARY` when the shelf holds none.
+    fn add(
+        &self,
+        shelf: crate::proto::glossary::v1::Shelf,
+    ) -> impl ::core::future::Future<
+        Output = ::core::result::Result<
+            ::buffa_types::google::protobuf::Empty,
+            ::protocontract::Error,
+        >,
+    > + ::core::marker::Send;
+}
+/// Any `GlossariesAsync` implementation behind dynamic dispatch, for an implementation chosen at run time. It implements `GlossariesAsync` itself, so generic code takes it like any other implementation.
+///
+/// Each call boxes its future, and its reply stream if there is one. Cloning shares the implementation.
+#[derive(Clone)]
+pub struct DynGlossariesAsync {
+    inner: ::std::sync::Arc<dyn __dyn_glossaries_async::Erased>,
+}
+impl ::core::fmt::Debug for DynGlossariesAsync {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("DynGlossariesAsync").finish_non_exhaustive()
+    }
+}
+impl DynGlossariesAsync {
+    /// Put `service` behind dynamic dispatch.
+    pub fn new<T: GlossariesAsync + 'static>(service: T) -> Self {
+        Self {
+            inner: ::std::sync::Arc::new(service),
+        }
+    }
+    /// Put a shared `service` behind dynamic dispatch.
+    pub fn from_arc<T: GlossariesAsync + 'static>(service: ::std::sync::Arc<T>) -> Self {
+        Self { inner: service }
+    }
+    /// Whether both handles hold the same implementation.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ::std::sync::Arc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+impl GlossariesAsync for DynGlossariesAsync {
+    fn open(
+        &self,
+        topic: crate::proto::glossary::v1::Topic,
+    ) -> impl ::core::future::Future<
+        Output = ::core::result::Result<
+            crate::traits::glossary_ref::GlossaryRef,
+            ::protocontract::Error,
+        >,
+    > + ::core::marker::Send {
+        self.inner.open(topic)
+    }
+    fn add(
+        &self,
+        shelf: crate::proto::glossary::v1::Shelf,
+    ) -> impl ::core::future::Future<
+        Output = ::core::result::Result<
+            ::buffa_types::google::protobuf::Empty,
+            ::protocontract::Error,
+        >,
+    > + ::core::marker::Send {
+        self.inner.add(shelf)
+    }
+}
+/// The dyn-compatible face behind the handle: every future and reply
+/// stream boxed.
+#[allow(clippy::type_complexity, clippy::wrong_self_convention)]
+mod __dyn_glossaries_async {
+    pub trait Erased: ::core::marker::Send + ::core::marker::Sync {
+        fn open(
+            &self,
+            topic: crate::proto::glossary::v1::Topic,
+        ) -> ::protocontract::BoxFuture<
+            '_,
+            ::core::result::Result<
+                crate::traits::glossary_ref::GlossaryRef,
+                ::protocontract::Error,
+            >,
+        >;
+        fn add(
+            &self,
+            shelf: crate::proto::glossary::v1::Shelf,
+        ) -> ::protocontract::BoxFuture<
+            '_,
+            ::core::result::Result<
+                ::buffa_types::google::protobuf::Empty,
+                ::protocontract::Error,
+            >,
+        >;
+    }
+    impl<T: super::GlossariesAsync + 'static> Erased for T {
+        fn open(
+            &self,
+            topic: crate::proto::glossary::v1::Topic,
+        ) -> ::protocontract::BoxFuture<
+            '_,
+            ::core::result::Result<
+                crate::traits::glossary_ref::GlossaryRef,
+                ::protocontract::Error,
+            >,
+        > {
+            ::std::boxed::Box::pin(<T as super::GlossariesAsync>::open(self, topic))
+        }
+        fn add(
+            &self,
+            shelf: crate::proto::glossary::v1::Shelf,
+        ) -> ::protocontract::BoxFuture<
+            '_,
+            ::core::result::Result<
+                ::buffa_types::google::protobuf::Empty,
+                ::protocontract::Error,
+            >,
+        > {
+            ::std::boxed::Box::pin(<T as super::GlossariesAsync>::add(self, shelf))
+        }
+    }
+}
+impl<T: GlossariesSync> GlossariesAsync for ::protocontract::Inline<T> {
+    async fn open(
+        &self,
+        topic: crate::proto::glossary::v1::Topic,
+    ) -> ::core::result::Result<
+        crate::traits::glossary_ref::GlossaryRef,
+        ::protocontract::Error,
+    > {
+        <T as GlossariesSync>::open(Self::get_ref(self), topic)
+    }
+    async fn add(
+        &self,
+        shelf: crate::proto::glossary::v1::Shelf,
+    ) -> ::core::result::Result<
+        ::buffa_types::google::protobuf::Empty,
+        ::protocontract::Error,
+    > {
+        <T as GlossariesSync>::add(Self::get_ref(self), shelf)
+    }
+}
+#[cfg(feature = "tokio")]
+impl<T: GlossariesSync + 'static> GlossariesAsync for ::protocontract::Offload<T> {
+    fn open(
+        &self,
+        topic: crate::proto::glossary::v1::Topic,
+    ) -> impl ::core::future::Future<
+        Output = ::core::result::Result<
+            crate::traits::glossary_ref::GlossaryRef,
+            ::protocontract::Error,
+        >,
+    > + ::core::marker::Send {
+        Self::call(self, move |service| <T as GlossariesSync>::open(service, topic))
+    }
+    fn add(
+        &self,
+        shelf: crate::proto::glossary::v1::Shelf,
+    ) -> impl ::core::future::Future<
+        Output = ::core::result::Result<
+            ::buffa_types::google::protobuf::Empty,
+            ::protocontract::Error,
+        >,
+    > + ::core::marker::Send {
+        Self::call(self, move |service| <T as GlossariesSync>::add(service, shelf))
+    }
+}
+#[cfg(feature = "tokio")]
+impl<T: GlossariesAsync + 'static> GlossariesSync for ::protocontract::Blocking<T> {
+    fn open(
+        &self,
+        topic: crate::proto::glossary::v1::Topic,
+    ) -> ::core::result::Result<
+        crate::traits::glossary_ref::GlossaryRef,
+        ::protocontract::Error,
+    > {
+        Self::block_on(self, <T as GlossariesAsync>::open(Self::get_ref(self), topic))
+    }
+    fn add(
+        &self,
+        shelf: crate::proto::glossary::v1::Shelf,
+    ) -> ::core::result::Result<
+        ::buffa_types::google::protobuf::Empty,
+        ::protocontract::Error,
+    > {
+        Self::block_on(self, <T as GlossariesAsync>::add(Self::get_ref(self), shelf))
+    }
+}
+/// The reference type of `glossary.v1.GlossaryRef`: [`GlossaryRef`](glossary_ref::GlossaryRef).
+pub mod glossary_ref {
+    /// A glossary to call: a reference to an implementation of `Glossary` in
+    /// this process, not data. It does not survive encoding.
+    ///
+    /// A reference to an implementation of `glossary.v1.Glossary`, in the form it was given: blocking (`GlossarySync`) or async (`GlossaryAsync`). Every field, request, and reply of `glossary.v1.GlossaryRef` holds one. Take the form the caller needs with `to_sync`, `to_async_inline`, or `to_async_offload`.
+    ///
+    /// A reference lives in one process. Encoded, it becomes an empty message; decoded, and as the default, it holds no implementation, and taking a form fails with `UNBOUND`. It has no JSON form.
+    ///
+    /// Two references are equal when they hold the same implementation.
+    #[derive(Clone, Default)]
+    pub struct GlossaryRef {
+        #[doc(hidden)]
+        pub __form: ::core::option::Option<
+            ::protocontract::reference::Form<
+                dyn super::GlossarySync,
+                super::DynGlossaryAsync,
+            >,
+        >,
+        #[doc(hidden)]
+        pub __buffa_unknown_fields: ::buffa::UnknownFields,
+    }
+    impl GlossaryRef {
+        /// A reference to the blocking implementation `service`.
+        pub fn from_sync<T: super::GlossarySync + 'static>(service: T) -> Self {
+            Self::from_shared(::std::sync::Arc::new(service))
+        }
+        /// A reference to a shared blocking implementation.
+        pub fn from_shared(service: ::std::sync::Arc<dyn super::GlossarySync>) -> Self {
+            Self {
+                __form: ::core::option::Option::Some(
+                    ::protocontract::reference::Form::Sync(service),
+                ),
+                __buffa_unknown_fields: ::core::default::Default::default(),
+            }
+        }
+        /// A reference to the async implementation `service`.
+        pub fn from_async<T: super::GlossaryAsync + 'static>(service: T) -> Self {
+            Self::from_dyn(super::DynGlossaryAsync::new(service))
+        }
+        /// A reference to an async implementation behind dynamic
+        /// dispatch.
+        pub fn from_dyn(service: super::DynGlossaryAsync) -> Self {
+            Self {
+                __form: ::core::option::Option::Some(
+                    ::protocontract::reference::Form::Async(service),
+                ),
+                __buffa_unknown_fields: ::core::default::Default::default(),
+            }
+        }
+        /// Whether the reference holds an implementation. The default
+        /// and a decoded reference do not.
+        pub fn is_bound(&self) -> bool {
+            self.__form.is_some()
+        }
+        /// The implementation in the blocking form. An async one is
+        /// called through `Blocking`, on the tokio runtime current
+        /// now.
+        ///
+        /// # Errors
+        ///
+        /// `UNBOUND` when the reference holds no implementation;
+        /// `NO_RUNTIME` for an async one outside a tokio runtime, or
+        /// in a build without tokio.
+        pub fn to_sync(
+            &self,
+        ) -> ::core::result::Result<
+            ::std::sync::Arc<dyn super::GlossarySync>,
+            ::protocontract::Error,
+        > {
+            match self.form()? {
+                ::protocontract::reference::Form::Sync(service) => {
+                    ::core::result::Result::Ok(::std::sync::Arc::clone(service))
+                }
+                ::protocontract::reference::Form::Async(service) => {
+                    #[cfg(feature = "tokio")]
+                    {
+                        ::core::result::Result::Ok(
+                            ::std::sync::Arc::new(
+                                ::protocontract::Blocking::new(
+                                    ::core::clone::Clone::clone(service),
+                                    ::protocontract::reference::current_handle(
+                                        "glossary.v1.Glossary",
+                                    )?,
+                                ),
+                            ),
+                        )
+                    }
+                    #[cfg(not(feature = "tokio"))]
+                    {
+                        let _ = service;
+                        ::core::result::Result::Err(
+                            ::protocontract::reference::no_runtime(
+                                "glossary.v1.Glossary",
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+        /// The implementation in the async form. A blocking one is
+        /// called through `Inline`, inside the future's poll: for
+        /// calls of microseconds.
+        ///
+        /// # Errors
+        ///
+        /// `UNBOUND` when the reference holds no implementation.
+        pub fn to_async_inline(
+            &self,
+        ) -> ::core::result::Result<super::DynGlossaryAsync, ::protocontract::Error> {
+            match self.form()? {
+                ::protocontract::reference::Form::Sync(service) => {
+                    ::core::result::Result::Ok(
+                        super::DynGlossaryAsync::new(
+                            ::protocontract::Inline::new(
+                                Shared(::std::sync::Arc::clone(service)),
+                            ),
+                        ),
+                    )
+                }
+                ::protocontract::reference::Form::Async(service) => {
+                    ::core::result::Result::Ok(::core::clone::Clone::clone(service))
+                }
+            }
+        }
+        /// The implementation in the async form. A blocking one is
+        /// called through `Offload`, on the blocking pool of the tokio
+        /// runtime current now.
+        ///
+        /// # Errors
+        ///
+        /// `UNBOUND` when the reference holds no implementation;
+        /// `NO_RUNTIME` for a blocking one outside a tokio runtime.
+        #[cfg(feature = "tokio")]
+        pub fn to_async_offload(
+            &self,
+        ) -> ::core::result::Result<super::DynGlossaryAsync, ::protocontract::Error> {
+            match self.form()? {
+                ::protocontract::reference::Form::Sync(service) => {
+                    ::core::result::Result::Ok(
+                        super::DynGlossaryAsync::new(
+                            ::protocontract::Offload::new(
+                                Shared(::std::sync::Arc::clone(service)),
+                                ::protocontract::reference::current_handle(
+                                    "glossary.v1.Glossary",
+                                )?,
+                            ),
+                        ),
+                    )
+                }
+                ::protocontract::reference::Form::Async(service) => {
+                    ::core::result::Result::Ok(::core::clone::Clone::clone(service))
+                }
+            }
+        }
+        fn form(
+            &self,
+        ) -> ::core::result::Result<
+            &::protocontract::reference::Form<
+                dyn super::GlossarySync,
+                super::DynGlossaryAsync,
+            >,
+            ::protocontract::Error,
+        > {
+            self.__form
+                .as_ref()
+                .ok_or_else(|| ::protocontract::reference::unbound(
+                    "glossary.v1.Glossary",
+                ))
+        }
+    }
+    /// A shared blocking implementation, as a blocking implementation
+    /// the bridges take by value.
+    struct Shared(::std::sync::Arc<dyn super::GlossarySync>);
+    impl super::GlossarySync for Shared {
+        fn define(
+            &self,
+            word: crate::proto::glossary::v1::Word,
+        ) -> ::core::result::Result<
+            crate::proto::glossary::v1::Term,
+            ::protocontract::Error,
+        > {
+            self.0.define(word)
+        }
+        fn terms(
+            &self,
+            prefix: crate::proto::glossary::v1::Prefix,
+        ) -> ::core::result::Result<
+            ::protocontract::BoxIter<
+                'static,
+                ::core::result::Result<
+                    crate::proto::glossary::v1::Term,
+                    ::protocontract::Error,
+                >,
+            >,
+            ::protocontract::Error,
+        > {
+            self.0.terms(prefix)
+        }
+    }
+    impl ::core::fmt::Debug for GlossaryRef {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            f.debug_tuple("glossary.v1.GlossaryRef").field(&self.__form).finish()
+        }
+    }
+    impl ::core::cmp::PartialEq for GlossaryRef {
+        fn eq(&self, other: &Self) -> bool {
+            match (&self.__form, &other.__form) {
+                (::core::option::Option::None, ::core::option::Option::None) => true,
+                (
+                    ::core::option::Option::Some(
+                        ::protocontract::reference::Form::Sync(a),
+                    ),
+                    ::core::option::Option::Some(
+                        ::protocontract::reference::Form::Sync(b),
+                    ),
+                ) => ::std::sync::Arc::ptr_eq(a, b),
+                (
+                    ::core::option::Option::Some(
+                        ::protocontract::reference::Form::Async(a),
+                    ),
+                    ::core::option::Option::Some(
+                        ::protocontract::reference::Form::Async(b),
+                    ),
+                ) => a.ptr_eq(b),
+                _ => false,
+            }
+        }
+    }
+    ::buffa::impl_default_instance!(GlossaryRef);
+    impl ::buffa::MessageName for GlossaryRef {
+        const PACKAGE: &'static str = "glossary.v1";
+        const NAME: &'static str = "GlossaryRef";
+        const FULL_NAME: &'static str = "glossary.v1.GlossaryRef";
+        const TYPE_URL: &'static str = "type.googleapis.com/glossary.v1.GlossaryRef";
+    }
+    /// A reference encodes as an empty message: nothing of the
+    /// implementation can travel. Decoding keeps the fields it reads
+    /// as unknown fields and binds nothing.
+    impl ::buffa::Message for GlossaryRef {
+        fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+            ::buffa::saturate_size(self.__buffa_unknown_fields.encoded_len() as u64)
+        }
+        fn write_to(
+            &self,
+            _cache: &mut ::buffa::SizeCache,
+            buf: &mut impl ::buffa::EncodeSink,
+        ) {
+            self.__buffa_unknown_fields.write_to(buf);
+        }
+        fn merge_field(
+            &mut self,
+            tag: ::buffa::encoding::Tag,
+            buf: &mut impl ::buffa::bytes::Buf,
+            ctx: ::buffa::DecodeContext<'_>,
+        ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+            self.__buffa_unknown_fields
+                .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            ::core::result::Result::Ok(())
+        }
+        fn clear(&mut self) {
+            self.__form = ::core::option::Option::None;
+            self.__buffa_unknown_fields.clear();
+        }
+    }
+    #[doc(hidden)]
+    pub mod __buffa {
+        pub mod view {
+            pub use crate::proto::glossary::v1::GlossaryRefView;
+        }
+    }
+}

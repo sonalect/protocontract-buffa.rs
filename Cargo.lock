@@ -342,6 +342,7 @@ name = "glossary-api"
 version = "0.4.3"
 dependencies = [
  "buffa",
+ "buffa-types",
  "protocontract",
 ]
 
