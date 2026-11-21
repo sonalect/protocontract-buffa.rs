@@ -7,7 +7,8 @@
   (`protoc/plugins/protoc-gen-protocontract-buffa/registry.bzl`), with
   v0.4.1 as the fallback pin; 0.4.1 of bazel_utils added v0.4.0. Scheda
   pins bazel_utils 0.4.2 and the plugin at v0.4.1.
-- Plugin v0.4.2 (23 October 2026) is not in the catalog yet. This
+- Plugins v0.4.2 (23 October 2026) and v0.4.3 (21 November 2026) are not
+  in the catalog yet. This
   repository no longer builds with Bazel (DESIGN.md item 48, 21 November
   2026); the catalog still takes the plugin from its GitHub Releases.
 - Knowqore (`../knowqore`) still depends on `sonalect/proto-contract.rs`

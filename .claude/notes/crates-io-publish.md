@@ -27,6 +27,14 @@
   owner by hand: the auto-mode permission check denied `cargo publish` to
   Claude as a public, irreversible action. Allow it explicitly if Claude
   is to publish the next one.
+- 0.4.3 was published on 21 November 2026 from the tag `v0.4.3`, by
+  Claude at the owner's request (`--dry-run` first, then `protocontract`,
+  then the plugin). The tag was recreated once before that, on the
+  owner's order, against `release-tag.md`: the first `v0.4.3` and its
+  GitHub Release were deleted an hour after they appeared, before any
+  crates.io publish, and the tag was set on `45795d3`, which adds the
+  examples' validation. The binaries of the first Release differ from
+  the current ones; nobody pinned them.
 - Every release publishes both crates by hand: step 4 of
   `.claude/skills/versioning/SKILL.md`, run by the owner or at his request.
 - The README's shields.io badges (version, license) cache a crate's

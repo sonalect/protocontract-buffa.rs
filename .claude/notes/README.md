@@ -7,7 +7,7 @@ before planning; open a note when its topic comes up.
 | Note | What it holds |
 | - | - |
 | [bazel-utils-catalog.md](bazel-utils-catalog.md) | The plugin's bazel_utils catalog entry (v0.3.1, v0.4.0, v0.4.1 in bazel_utils 0.4.2), and the `buf_generate` scratch-path bug found there |
-| [crates-io-publish.md](crates-io-publish.md) | crates.io: both crates published (0.4.1, by hand); Trusted Publishing and the social preview still to do |
+| [crates-io-publish.md](crates-io-publish.md) | crates.io: both crates published (0.4.3 the latest); Trusted Publishing and the social preview still to do |
 
 ## References
 
