@@ -8,6 +8,8 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-21
+
 ### Changed
 
 - The repository builds with Cargo and [mise](https://mise.jdx.dev)
@@ -286,6 +288,7 @@ First release.
 ## Links
 
 - [Unreleased]
+- [0.4.3]
 - [0.4.2]
 - [0.4.1]
 - [0.4.0]
@@ -296,7 +299,8 @@ First release.
 - [0.2.0]
 - [0.1.0]
 
-[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/sonalect/protocontract-buffa.rs/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.3
 [0.4.2]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.2
 [0.4.1]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.1
 [0.4.0]: https://github.com/sonalect/protocontract-buffa.rs/releases/tag/v0.4.0
