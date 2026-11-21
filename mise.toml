@@ -54,12 +54,17 @@ shell = "bash -c"
 run = '''
 set -eu
 cargo build --locked -p protoc-gen-protocontract-buffa
-PATH="$PWD/target/debug:$PATH"
+# buf runs the plugin built here by its path, not through PATH: on
+# Windows, a PATH set in this script did not reach buf's lookup. The
+# template goes to buf as data, with that one `local:` rewritten.
+template_here() {
+  sed 's|^\( *- local: \)protoc-gen-protocontract-buffa$|\1./target/debug/protoc-gen-protocontract-buffa|' "$1"
+}
 for template in buf.gen.golden.yaml examples/*/buf.gen.yaml; do
   for out in $(sed -n 's/^ *out: *//p' "$template" | sort -u); do
     rm -rf "$out"
   done
-  buf generate --template "$template"
+  buf generate --template "$(template_here "$template")"
 done
 '''
 
@@ -69,11 +74,16 @@ shell = "bash -c"
 run = '''
 set -eu
 cargo build --locked -p protoc-gen-protocontract-buffa
-PATH="$PWD/target/debug:$PATH"
+# buf runs the plugin built here by its path, not through PATH: on
+# Windows, a PATH set in this script did not reach buf's lookup. The
+# template goes to buf as data, with that one `local:` rewritten.
+template_here() {
+  sed 's|^\( *- local: \)protoc-gen-protocontract-buffa$|\1./target/debug/protoc-gen-protocontract-buffa|' "$1"
+}
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 for template in buf.gen.golden.yaml examples/*/buf.gen.yaml; do
-  buf generate --template "$template" -o "$tmp"
+  buf generate --template "$(template_here "$template")" -o "$tmp"
 done
 # Each template writes one `src/generated` tree.
 for tree in rust/golden/src/generated examples/*/api/src/generated; do
