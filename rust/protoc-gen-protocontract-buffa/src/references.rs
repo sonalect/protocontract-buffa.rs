@@ -202,7 +202,7 @@ fn find_service(
     full: &str,
     name: &str,
 ) -> Result<(String, String, usize), Error> {
-    let name = name.strip_prefix('.').unwrap_or(name);
+    let name = name.trim_prefix('.');
     let short = match name.rsplit_once('.') {
         Some((service_package, short)) if service_package == package => short,
         None if package.is_empty() => name,

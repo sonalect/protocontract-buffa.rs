@@ -1,4 +1,4 @@
-# Golden generate for the test protos (`bazel run //proto:generate`).
+# Golden generate for the test protos (`mise run generate`).
 # buffa writes the messages, connect-rust its service items, and protocontract-buffa
 # both layouts of its traits. rust/golden mounts buffa's and protocontract-buffa's
 # output as separate trees, and all three once into one module per package.

@@ -5,14 +5,13 @@ edition.workspace = true
 # A binary built with the pinned toolchain (rust-toolchain.toml): the
 # plugin may use every feature up to it. Consumers take the release
 # binary; only `cargo install` compiles it, with this rustc or newer.
-rust-version = "1.99.1"
+rust-version = "1.100.0"
 license.workspace = true
 repository.workspace = true
 description = "protoc plugin: plain Rust sync and async traits for protobuf services, over buffa message types"
 readme = "../../README.md"
 keywords = ["protobuf", "protoc", "codegen", "buffa", "traits"]
 categories = ["development-tools::build-utils", "encoding", "command-line-utilities"]
-exclude = ["BUILD.bazel"]
 
 [lib]
 name = "protoc_gen_protocontract_buffa"

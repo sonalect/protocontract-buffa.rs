@@ -1,0 +1,149 @@
+# The tools of protocontract-buffa outside Cargo, and its tasks: the gate,
+# the generate of the golden files and the examples, the formatters.
+#
+# mise fetches every tool at the version below and checks it against
+# `mise.lock` (URL and sha256 per platform). Rust comes from
+# `rust-toolchain.toml` through rustup.
+#
+# `mise run gate` is the gate before a commit; `mise run generate` writes
+# the golden files and the examples' generated code with the plugin built
+# from this tree; `mise run format` formats everything in place.
+
+min_version = "2026.10.24"
+
+[settings]
+lockfile = true
+# The quarantine (.claude/rules/dependency-quarantine.md): what mise picks
+# itself, the transitive packages of npm tools included, is at least two
+# days old. Exact versions below are not filtered; their age is checked
+# when they are set.
+minimum_release_age = "2d"
+
+# Each protoc plugin goes by its name in the buf.gen.yaml templates. Both
+# buffa plugins come from one release; `matching` picks each one's asset.
+# The plugin of this repository is not here: generate builds it from the
+# tree and puts it first on PATH.
+[tool_alias]
+protoc-gen-buffa = "github:anthropics/buffa"
+protoc-gen-buffa-packaging = "github:anthropics/buffa"
+protoc-gen-connect-rust = "github:anthropics/connect-rust"
+protoc-gen-protovalidate-buffa = "github:mathematic-inc/protovalidate-buffa"
+
+[tools]
+# Protocol Buffers: buf and the plugins the templates name next to this
+# one. buffa and connect-rust ship no Windows ARM64 build: there their x64
+# one runs under the emulation of Windows 11.
+buf = "1.74.0"
+protoc-gen-buffa = { version = "0.9.2", matching = "protoc-gen-buffa-v", bin = "protoc-gen-buffa", platforms = { windows-arm64 = { asset_pattern = "protoc-gen-buffa-v{{ version }}-windows-x86_64.exe" } } }
+protoc-gen-buffa-packaging = { version = "0.9.2", matching = "protoc-gen-buffa-packaging-v", bin = "protoc-gen-buffa-packaging", platforms = { windows-arm64 = { asset_pattern = "protoc-gen-buffa-packaging-v{{ version }}-windows-x86_64.exe" } } }
+protoc-gen-connect-rust = { version = "0.9.1", bin = "protoc-gen-connect-rust", platforms = { windows-arm64 = { asset_pattern = "protoc-gen-connect-rust-v{{ version }}-windows-x86_64.exe" } } }
+protoc-gen-protovalidate-buffa = { version = "0.10.4", version_prefix = "protoc-gen-protovalidate-buffa-v" }
+
+# Rust: the checks of the dependency graph (deny.toml).
+cargo-deny = "0.20.2"
+
+# Markdown.
+node = "26.13.0"
+"npm:markdownlint-cli2" = "0.24.0"
+
+# Every task script is bash: on Windows, the bash of Git for Windows.
+[tasks.generate]
+description = "Write the golden files and the examples' generated code with the plugin built here"
+shell = "bash -c"
+run = '''
+set -eu
+cargo build --locked -p protoc-gen-protocontract-buffa
+PATH="$PWD/target/debug:$PATH"
+for template in buf.gen.golden.yaml examples/*/buf.gen.yaml; do
+  for out in $(sed -n 's/^ *out: *//p' "$template" | sort -u); do
+    rm -rf "$out"
+  done
+  buf generate --template "$template"
+done
+'''
+
+[tasks."check:generate"]
+description = "Fail while a checked-in generated tree differs from what the plugins write"
+shell = "bash -c"
+run = '''
+set -eu
+cargo build --locked -p protoc-gen-protocontract-buffa
+PATH="$PWD/target/debug:$PATH"
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+for template in buf.gen.golden.yaml examples/*/buf.gen.yaml; do
+  buf generate --template "$template" -o "$tmp"
+done
+# Each template writes one `src/generated` tree.
+for tree in rust/golden/src/generated examples/*/api/src/generated; do
+  git diff --no-index --exit-code "$tmp/$tree" "$tree"
+done
+'''
+
+[tasks."lint:proto"]
+description = "buf lint, and buf format check, over every proto"
+shell = "bash -c"
+run = '''
+set -eu
+buf lint
+buf format --diff --exit-code
+'''
+
+[tasks."lint:rust"]
+description = "clippy over every crate, in each feature set the crates ship"
+shell = "bash -c"
+# One build unifies the features of every crate it selects: the examples
+# turn on `tokio` of protocontract. Each feature set is its own run.
+run = '''
+set -eu
+cargo clippy --workspace --all-targets --locked
+cargo clippy -p protocontract --all-targets --locked
+cargo clippy -p contract-golden -p refs-api --lib --no-default-features --locked
+'''
+
+[tasks."fmt:rust"]
+description = "Fail on hand-written Rust that rustfmt would change"
+run = "cargo fmt --all --check"
+
+[tasks."deny:rust"]
+description = "Vulnerabilities, licences, duplicates and sources of Cargo.lock (deny.toml; needs the network)"
+# A stale entry of `skip` in deny.toml fails too, so the list never outlives
+# its duplicates.
+run = "cargo deny --locked check --hide-inclusion-graph -D unnecessary-skip -D unmatched-skip"
+
+[tasks."lint:markdown"]
+description = "markdownlint over every *.md"
+run = "markdownlint-cli2"
+
+[tasks.test]
+description = "The tests of every crate, doc tests included, in each feature set"
+shell = "bash -c"
+run = '''
+set -eu
+cargo test --workspace --locked
+cargo test -p protocontract --locked
+'''
+
+[tasks.gate]
+description = "The gate before a commit"
+depends = [
+  "check:generate",
+  "lint:proto",
+  "lint:rust",
+  "fmt:rust",
+  "deny:rust",
+  "lint:markdown",
+  "test",
+]
+
+[tasks."format:rust"]
+description = "Format the hand-written Rust in place"
+run = "cargo fmt --all"
+
+[tasks."format:proto"]
+description = "Format every proto in place"
+run = "buf format --write"
+
+[tasks.format]
+description = "Format everything in place"
+depends = ["format:rust", "format:proto"]

@@ -1,0 +1,48 @@
+# cargo-deny over Cargo.lock: known vulnerabilities, licences, duplicate
+# crates, and where crates come from. `mise run deny:rust` runs it; it needs
+# the network for the RustSec database.
+
+[graph]
+all-features = true
+
+[advisories]
+# An unmaintained crate fails only when our own crates use it directly.
+unmaintained = "workspace"
+# Known vulnerabilities fail. Ignore one only while its fix cannot pass the
+# quarantine (.claude/rules/dependency-quarantine.md), with the reason.
+ignore = []
+
+[licenses]
+# Permissive licences only. A crate offered under several licences passes
+# when one of them is here.
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "MIT-0",
+  "Unicode-3.0",
+  "Zlib",
+]
+
+# The examples and the golden crate are never published (`publish = false`).
+[licenses.private]
+ignore = true
+
+[bans]
+# A crate in two versions fails, but those in `skip`. Cargo never locks two
+# compatible versions of a crate, so each entry is one whose dependents
+# demand different majors. `mise run deny:rust` also fails on an entry that
+# is no longer a duplicate or no longer in the graph: remove it then.
+multiple-versions = "deny"
+# buffa-codegen builds on syn 2 and prettyplease 0.2; the plugin on syn 3
+# and prettyplease 0.3.
+skip = [
+  "prettyplease",
+  "syn",
+]
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

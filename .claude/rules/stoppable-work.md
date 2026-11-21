@@ -36,9 +36,9 @@ Use the smallest input that can still answer it.
 
 ## Cold rebuilds are a stall
 
-If `bazel` or `cargo` starts building dependencies you did not change,
-the command is sandboxed or running outside the repo root: it cannot see
-`~/.cache/bazel`, and Cargo gets a private target directory under `/tmp`.
+If `cargo` starts building dependencies you did not change, the command
+is sandboxed or running outside the repo root: Cargo gets a private
+target directory under `/tmp`.
 Abort it. `/tmp` is a tmpfs, and filling it wedges the machine. Re-run
 per `run-commands.md`, from the repo root and unsandboxed.
 

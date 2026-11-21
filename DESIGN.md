@@ -303,7 +303,7 @@ service Alarms {
 
 The option is declared in `protocontract/v1/options.proto`, which ships
 inside the `protocontract` crate (`proto/`): a build that has the crate
-has the file, Bazel included (`//rust/protocontract:protos`). The
+has the file. The
 extension number is 57391, from the range for in-house use, and stays
 (item 46).
 
@@ -644,20 +644,20 @@ connect-rust takes.
 
 ## 9. Repository
 
-Layout as `serde_markdown`: a Cargo workspace and a Bazel module
-(`MODULE.bazel`, `rust.MODULE.bazel`, `buf.MODULE.bazel`, through
-`bazel_utils`); `rust/protocontract`, `rust/protoc-gen-protocontract-buffa`,
+A Cargo workspace, with `mise` (`mise.toml`, `mise.lock`) for the tools
+outside Cargo and the tasks: `mise run gate`, `mise run generate`,
+`mise run format` (item 48); `rust/protocontract`, `rust/protoc-gen-protocontract-buffa`,
 `proto/` with the test protos, `rust/golden`, which compiles the golden
 output and runs the behaviour tests against it, and `examples/glossary`, a
 contract in use by a provider and a consumer. Edition 2024; `rust-version` is
 1.92 for the runtime and the generated code (what a consumer compiles) and
-1.99.1, the pinned toolchain, for the plugin. Apache-2.0, English docs.
+1.100.0, the pinned toolchain, for the plugin. Apache-2.0, English docs.
 
 Release: a version tag, and nothing else, starts
 `.github/workflows/release.yml` (decided by the owner, 6 October 2026). It
 checks that the tag is annotated, points at a commit on `main`, has a
-message body, and matches `Cargo.toml`, `MODULE.bazel`, and
-`CHANGELOG.md`; runs `bazel build //...` and `bazel test //...` on
+message body, and matches `Cargo.toml` and `CHANGELOG.md`; runs
+`mise run gate` on
 `linux_amd64`, `linux_arm64`, `darwin_amd64`, `darwin_arm64`,
 `windows_amd64`, and `windows_arm64`; builds the plugin on each with Cargo
 (`--profile dist`); and, when all six pass, publishes the GitHub Release
@@ -668,13 +668,6 @@ release: its subject the title, its body the notes
 (`.claude/rules/release-tag.md`). A manual run is the dry run: the same
 work, no Release.
 
-Bazel caches (`--disk_cache`, `--repository_cache`) are kept per platform,
-keyed by `.bazelversion`, `MODULE.bazel.lock`, and `Cargo.lock`. GitHub
-lets a run restore caches of its own ref or of the default branch, never of
-another tag, so a tag run only restores, and the dry run on `main` saves.
-Tagging right after a dry run on `main` finds every key; without it, the
-tag run is cold.
-
 The binaries are named `protoc-gen-protocontract-buffa-{tag}-{file}`, `file`
 being `linux-x86_64`, `linux-aarch64`, `darwin-x86_64`, `darwin-aarch64`,
 `windows-x86_64.exe`, or `windows-aarch64.exe`, the shape the `kind: file`
@@ -683,11 +676,10 @@ the musl targets, Windows with a static C runtime (`.cargo/config.toml`).
 macOS links only the system libraries, since Apple supports no fully
 static binary. The workflow checks each and runs it on an empty request.
 
-On `windows_arm64`, `bazel test //...` skips the golden generate and its
-diff test (`//proto:golden`, `//proto:generate`): protoc-gen-buffa,
-protoc-gen-buffa-packaging, and protoc-gen-connect-rust publish no binary
-for it. The golden crate still compiles and tests the checked-in output
-there.
+On `windows_arm64`, protoc-gen-buffa, protoc-gen-buffa-packaging, and
+protoc-gen-connect-rust publish no binary: `mise.toml` takes their x64
+build there, which runs under the emulation of Windows 11, so the golden
+check runs on all six platforms.
 
 Then add a `registry.bzl` for the plugin to `bazel_utils`. The runtime crate is published by git tag. Knowqore adds it to
 the named exceptions of its dependency quarantine, next to `scheda` and
@@ -915,3 +907,12 @@ owner dropped the Connect adapters and the validation wrapper (items 32,
     owner's choice, 18 October 2026.*
 47. **`Validate` on a reference** with `validate=true` (§4.7, O6).
     *Accepted by the owner, 18 October 2026.*
+48. **mise instead of Bazel** (§9). The repository builds with Cargo
+    alone; `mise.toml` pins the tools outside Cargo (buf, the protoc
+    plugins next to this one, cargo-deny, markdownlint, each checked
+    against `mise.lock`) and holds the tasks: the gate, the generate of
+    the golden files and the examples, the formatters. There is no Bazel
+    module any more, so the name `protocontract_buffa` of item 1 is gone.
+    A Bazel consumer still takes the plugin's release binaries through the
+    `bazel_utils` catalog, and the runtime crate from crates.io.
+    *Decided by the owner, 21 November 2026.*

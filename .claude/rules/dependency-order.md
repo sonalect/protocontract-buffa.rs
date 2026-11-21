@@ -30,11 +30,10 @@ connectrpc = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 ```
 
-## BUILD.bazel
+## mise.toml
 
-`deps` / `proc_macro_deps` lists: alphabetical. Workspace `//rust/…` first,
-then `@protocontract_buffa_cargo//:…`. `bazel run //bazel:format` sorts what
-buildifier can.
+`[tools]` and `[tool_alias]`: grouped by purpose under a comment (Protocol
+Buffers, Rust, Markdown), the entries of a group alphabetical.
 
-Does not replace `dependency-quarantine.md` or the crate_universe repin
-(`cargo-bazel-lock.md`).
+Does not replace `dependency-quarantine.md`, which applies to every tool
+`mise.toml` pins.

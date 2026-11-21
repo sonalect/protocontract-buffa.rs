@@ -1,4 +1,0 @@
-# Cargo build output. `cargo package` unpacks each crate into
-# target/package/<crate>-<version>/ with its BUILD.bazel, which `//...`
-# would otherwise pick up as extra packages.
-target

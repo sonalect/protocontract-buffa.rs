@@ -25,6 +25,6 @@ the brief. The project rules in `.claude/rules/` apply in full.
 
 1. Files changed, one line each.
 2. Gates run and their result (`cargo test`, `cargo clippy`, and
-   `bazel test //...` if the brief requires it).
+   `mise run gate` if the brief requires it).
 3. Stages of `DESIGN.md` completed, each with the test that proves it.
 4. Anything left undone, open questions, deviations from the spec.

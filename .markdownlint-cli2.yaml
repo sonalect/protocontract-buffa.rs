@@ -16,7 +16,6 @@ globs:
 
 ignores:
   - "**/node_modules/**"
-  - ".bazel/**"
   - "target/**"
   - "**/target/**"
   - "**/testdata/**"

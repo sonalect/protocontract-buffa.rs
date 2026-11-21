@@ -15,7 +15,7 @@ encoding, no transport, no view types. A method can also take or give an
 implementation of another service, in a field, a request, or a reply
 ([References to a service](#references-to-a-service)). The runtime crate
 `protocontract` holds the types the generated code names. The runtime and the generated code need
-Rust 1.92 or newer; building the plugin from source needs Rust 1.99.1 (the
+Rust 1.92 or newer; building the plugin from source needs Rust 1.100.0 (the
 release binaries need no Rust at all).
 
 ## What is generated
@@ -459,8 +459,7 @@ let tick = clock.now(Empty::default())?;
 `options.proto` ships inside the `protocontract` crate, under `proto/`
 (`proto/protocontract/v1/options.proto`), so whatever has the crate has
 the file. Add that directory to the `buf` module that compiles your
-contract, next to your own protos; a Bazel build exposes it from the
-crate's repository as a `filegroup`.
+contract, next to your own protos.
 
 [`examples/refs`](https://github.com/sonalect/protocontract-buffa.rs/tree/main/examples/refs)
 shows all of it in use, protovalidate included.
@@ -579,10 +578,14 @@ owned messages where you decide to.
 
 ```bash
 cargo test --workspace
-bazel test //...                        # the gate: golden files, clippy, rustfmt, lint, markdown
-bazel run //proto:generate              # refresh the golden files after a plugin change
-bazel run //examples/glossary:generate  # and the example's generated code
+mise run gate       # the gate: generated files, clippy, rustfmt, cargo-deny, buf lint, markdown, tests
+mise run generate   # refresh the golden files and the examples' generated code after a plugin change
+mise run format     # format the Rust and the protos in place
 ```
+
+[mise](https://mise.jdx.dev) installs buf, the protoc plugins next to this
+one, cargo-deny, and markdownlint at the versions in `mise.toml`, checked
+against `mise.lock`; Rust comes from `rust-toolchain.toml` through rustup.
 
 The release binary of the plugin, as the release workflow builds it:
 
@@ -601,7 +604,7 @@ target makes the binary static, with the flags in `.cargo/config.toml`
 | macOS | `x86_64-apple-darwin`, `aarch64-apple-darwin` | system libraries only (Apple supports no static binary) |
 
 An annotated version tag `vX.Y.Z` on `main` runs the release workflow:
-Bazel build and tests and the plugin's static binary on Linux, macOS, and
+the gate and the plugin's static binary on Linux, macOS, and
 Windows, each on amd64 and arm64; the runtime and the generated code built
 and tested with the minimum Rust version; then a GitHub Release with the
 six binaries and `checksums-sha256.txt`. The tag's message is the release

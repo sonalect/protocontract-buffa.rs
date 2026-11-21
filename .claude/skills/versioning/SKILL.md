@@ -1,26 +1,25 @@
 ---
 name: versioning
 description: >-
-  Bump the protocontract-buffa crates and Bazel module versions in lockstep
+  Bump the protocontract-buffa crates in lockstep
   (Rust-style 0.x or SemVer after 1.0.0), update CHANGELOG.md, create the
   matching GitHub tag, whose CI workflow tests six platforms and publishes
   the GitHub Release with the plugin binaries, then publish both crates on
   crates.io. Use when releasing, tagging, publishing a GitHub release or a
   crate,
-  bumping version, editing MODULE.bazel or workspace package version, or
+  bumping version, editing the workspace package version, or
   adding a CHANGELOG section.
 ---
 
 # Versioning
 
 One release version for the whole repository: the runtime crate
-`protocontract`, the plugin crate `protoc-gen-protocontract-buffa`, and the Bazel
-module. The status line of `DESIGN.md` is **not** this number.
+`protocontract` and the plugin crate `protoc-gen-protocontract-buffa`. The status line of `DESIGN.md` is **not** this number.
 
 ## Scheme
 
-Versions are `MAJOR.MINOR.PATCH`. `module(version = "0.0.1")` and Cargo
-`version = "0.0.1"` have **no** `v`. The git tag **does**: `v0.0.1`.
+Versions are `MAJOR.MINOR.PATCH`. Cargo `version = "0.0.1"` has **no**
+`v`. The git tag **does**: `v0.0.1`.
 
 If **major is 0** (Rust approach, also stated in `CHANGELOG.md`):
 
@@ -39,18 +38,17 @@ wants a stable public API.
 **Breaking** means consumer-visible (`.claude/rules/consumers.md`): a
 renamed or removed generated item, a changed generated signature or module
 layout, a removed or re-meant plugin parameter or default, a changed
-runtime type, or a changed error code. Toolchain and CI pins (Bazel,
-rustc) are a patch (0.x) or minor (≥1.0) unless they force a breaking
+runtime type, or a changed error code. Toolchain and CI pins (mise
+tools, rustc) are a patch (0.x) or minor (≥1.0) unless they force a breaking
 change. A bump of the pinned buffa or connect-rust that changes the
 generated code is breaking.
 
-Pinned `bazel_utils_*` / `rules_rust` versions are **not** this number.
+The versions `mise.toml` pins are **not** this number.
 
 ## Lockstep files
 
 Set the same `MAJOR.MINOR.PATCH` everywhere:
 
-- Root `MODULE.bazel`: `module(version = …)`
 - Root `Cargo.toml`: `[workspace.package] version` (members use
   `version.workspace = true`)
 - `CHANGELOG.md`: move `## [Unreleased]` notes into `## [MAJOR.MINOR.PATCH] -
@@ -61,16 +59,13 @@ Set the same `MAJOR.MINOR.PATCH` everywhere:
   compatible range, `MAJOR.MINOR` while major is 0 (`"0.3"`), `MAJOR`
   after; change them only when a release leaves that range.
 
-Refresh `MODULE.bazel.lock` if it changes.
-
 ## Release
 
 Only when the owner asked to release, and only from `main`:
 
 1. Commit the version bump and `CHANGELOG.md` on `main` and push it.
 2. Run the workflow by hand on `main` and wait for it: the same six
-   platforms and binaries, no Release, and it saves the Bazel caches the
-   tag run will restore.
+   platforms and binaries, no Release.
 
    ```bash
    gh workflow run Release --ref main
@@ -103,8 +98,8 @@ The tag starts `.github/workflows/release.yml`; nothing else does. It:
 
 1. fails at once unless the tag is annotated, points at a commit on
    `main`, has a message body, and is `v` plus the version in `Cargo.toml`
-   and `MODULE.bazel`, with `## [MAJOR.MINOR.PATCH]` in `CHANGELOG.md`;
-2. runs `bazel build //...` and `bazel test //...` on six platforms
+   with `## [MAJOR.MINOR.PATCH]` in `CHANGELOG.md`;
+2. runs `mise run gate` on six platforms
    (`linux_amd64`, `linux_arm64`, `darwin_amd64`, `darwin_arm64`,
    `windows_amd64`, `windows_arm64`), and on each builds the plugin's
    static release binary with Cargo (`--profile dist`);

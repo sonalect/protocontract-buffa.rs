@@ -1,4 +1,4 @@
-# Generate for the glossary example (`bazel run //examples/glossary:generate`).
+# Generate for the glossary example (`mise run generate`).
 # buffa writes the messages, protocontract-buffa the traits of the service; both land
 # in the `glossary-api` crate, which is all a provider or a consumer
 # depends on. Both forms of the traits are generated; the example calls

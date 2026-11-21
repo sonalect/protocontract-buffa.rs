@@ -2,7 +2,7 @@
 //! either of them depends on.
 //!
 //! Everything here is generated from `proto/glossary/v1/glossary.proto`
-//! (`bazel run //examples/glossary:generate`):
+//! (`mise run generate`):
 //!
 //! - the messages, by `protoc-gen-buffa`;
 //! - [`GlossarySync`] (and its async form), by `protoc-gen-protocontract-buffa`;

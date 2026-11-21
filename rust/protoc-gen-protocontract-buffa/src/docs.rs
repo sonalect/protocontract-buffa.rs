@@ -75,7 +75,7 @@ fn comment_at(file: &FileDescriptorProto, path: &[i32]) -> Option<String> {
     // indentation (code blocks) and blank lines (paragraph breaks).
     let normalized = comment
         .lines()
-        .map(|line| line.strip_prefix(' ').unwrap_or(line).trim_end())
+        .map(|line| line.trim_prefix(' ').trim_end())
         .collect::<Vec<_>>()
         .join("\n");
     let cleaned = sanitize_comment(normalized.trim_matches('\n'));

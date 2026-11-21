@@ -1,4 +1,4 @@
-# Generate for examples/refs (`bazel run //examples/refs:generate`).
+# Generate for examples/refs (`mise run generate`).
 # `ClockRef` is a reference to `refs.v1.Clock`: protocontract-buffa emits
 # its type in the module `clock_ref` of the package's traits, and both
 # plugins map the message there, so every message and trait that names it

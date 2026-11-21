@@ -23,7 +23,7 @@ owner switch.
 
 | Agent | Model | Use for |
 | - | - | - |
-| `runner` | Haiku | `bazel test`, `cargo test` / `clippy`, generate, crate_universe repin, any long or noisy command; returns failures only |
+| `runner` | Haiku | `mise run gate`, `cargo test` / `clippy`, generate, any long or noisy command; returns failures only |
 | `scout` | Haiku | where X is defined / used, lists by criterion, summaries of large files or logs, a consumer's use of an API, dependency publish dates |
 | `mechanic` | Haiku | renames across files, dependency sorting, exact replacements — fully specified, volume only |
 | `implementer` | Sonnet | from an Opus session: a specified change across files, with tests and the docs pass |

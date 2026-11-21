@@ -31,7 +31,7 @@ pub(crate) fn check_absolute_path(path: &str, what: &str) -> Result<(), Error> {
 /// Tokens of a Rust path. Keyword segments become raw identifiers, as
 /// `protoc-gen-buffa` emits them.
 pub(crate) fn path_tokens(path: &str) -> Result<TokenStream, Error> {
-    let rest = path.strip_prefix("::").unwrap_or(path);
+    let rest = path.trim_prefix("::");
     if rest.split("::").all(is_identifier) {
         Ok(buffa_codegen::idents::rust_path_to_tokens(path))
     } else {

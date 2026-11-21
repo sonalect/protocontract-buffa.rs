@@ -43,4 +43,3 @@ service Alarms {
   // The clock in use.
   rpc CurrentClock(google.protobuf.Empty) returns (ClockRef);
 }
-

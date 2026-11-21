@@ -11,9 +11,9 @@
 - What the publish needed is in the tree since 0.3.1: caret ranges in
   `[workspace.dependencies]` (the quarantine lives in `Cargo.lock`,
   `.claude/rules/dependency-quarantine.md`); keywords, categories,
-  `LICENSE`, and `exclude = ["BUILD.bazel"]` in both packages; docs.rs
+  and `LICENSE` in both packages; docs.rs
   with all features; a README with absolute links and the crates.io
-  dependency; `.bazelignore` for `target/package`.
+  dependency.
 - 0.4.0 was published on 18 October 2026 from the tag `v0.4.0`, by Claude
   at the owner's request, with the crates.io token configured on the
   owner's machine (`~/.cargo/credentials.toml`): `--dry-run` first, then

@@ -6,7 +6,7 @@ them. Neither knows the other; both know only the contract.
 
 ```text
 proto/glossary/v1/glossary.proto     the contract: service, messages, error codes
-        │  bazel run //examples/glossary:generate
+        │  mise run generate   (from the repository root)
         ▼
 api/        glossary-api       generated messages and traits, runtime re-exports
 provider/   glossary-provider  MemoryGlossary implements GlossarySync
@@ -18,8 +18,6 @@ Run it:
 
 ```bash
 cargo run -p glossary-app
-# or
-bazel run //examples/glossary/app
 ```
 
 ```text

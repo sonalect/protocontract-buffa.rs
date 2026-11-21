@@ -20,6 +20,6 @@ conversions, what encoding and JSON do to a reference, and when it fails
 with `UNBOUND` or `NO_RUNTIME`.
 
 ```bash
-bazel run //examples/refs:generate   # regenerate api/src/generated
+mise run generate   # regenerate api/src/generated (and the rest), from the repository root
 cargo test -p refs-api
 ```

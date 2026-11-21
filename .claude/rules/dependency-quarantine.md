@@ -38,11 +38,18 @@ Decided by the owner on 16 October 2026, for publishing on crates.io:
 `=` pins, because an exact pin in a published library conflicts with a
 consumer on any other version. The quarantine then lives in `Cargo.lock`:
 
-- A plain `cargo update` takes the newest version in every range, however
-  fresh. Never run it bare. Move one crate at a time, to a version checked
-  against the quarantine: `cargo update -p <crate> --precise <version>`.
-- Read `git diff Cargo.lock` after any Cargo command that may resolve
+- Cargo enforces the 2 days itself (owner, 21 November 2026):
+  `.cargo/config.toml` sets `registry.global-min-publish-age = "2 days"`
+  and `resolver.incompatible-publish-age = "deny"`, respected from Cargo
+  1.100. The resolver skips a younger version unless `Cargo.lock` already
+  holds it, and names what it skipped (`available: …, published 33 hours
+  ago`). Never set `allow`, `CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE`, or
+  `CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE` to get around it.
+- A version the registry gives no publish time for passes that check
+  unchecked: crates.io is still backfilling them. So read
+  `git diff Cargo.lock` after any Cargo command that may resolve
   (`cargo update`, a new dependency, a changed feature): every version that
-  moved must clear the 2 days.
+  moved must clear the 2 days. Prefer moving one crate at a time
+  (`cargo update -p <crate>`), so the diff stays readable.
 - The range's lower bound is the version we test with. Raise it when the
   code needs a newer API, not on every lock bump.

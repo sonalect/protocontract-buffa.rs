@@ -8,6 +8,34 @@ changes to the generated code or the runtime bump the minor.
 
 ## [Unreleased]
 
+### Changed
+
+- The repository builds with Cargo and [mise](https://mise.jdx.dev)
+  instead of Bazel: `mise run gate` is the gate (generated files, clippy,
+  rustfmt, cargo-deny, buf lint and format, markdownlint, tests),
+  `mise run generate` refreshes the golden files and the examples, and
+  `mise run format` formats in place. The release workflow runs the gate
+  on the same six platforms, the golden check now on Windows ARM64 too.
+  The plugin's binaries, their names, and `checksums-sha256.txt` are
+  unchanged, so the `bazel_utils` catalog and a mise `github:` backend
+  keep working; the crates are unchanged.
+- The dependency check is cargo-deny (`deny.toml`): advisories as before,
+  plus licences, duplicate crates, and sources.
+- The pinned toolchain is Rust 1.100.0 (was 1.99.1), and building the
+  plugin from source (`cargo install protoc-gen-protocontract-buffa`) now
+  needs it. The runtime and the generated code still need Rust 1.92; the
+  generated code is the same.
+- `Cargo.lock` takes the newest version of each dependency that is at
+  least two days old (tokio 1.54.1, syn 3.0.10, and others), which the
+  plugin's release binaries are built with. The version ranges in
+  `Cargo.toml`, what a consumer resolves against, are unchanged.
+
+### Removed
+
+- The Bazel module `protocontract_buffa` (`MODULE.bazel` and every
+  `BUILD.bazel`). No consumer took it through `bazel_dep`; a Bazel build
+  takes the plugin from the `bazel_utils` catalog as before.
+
 ## [0.4.2] - 2026-10-23
 
 ### Fixed

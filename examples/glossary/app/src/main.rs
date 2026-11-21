@@ -3,7 +3,6 @@
 //!
 //! ```text
 //! cargo run -p glossary-app
-//! bazel run //examples/glossary/app
 //! ```
 
 use std::io::Write;

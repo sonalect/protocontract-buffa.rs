@@ -8,7 +8,7 @@ user-facing docs changes while `## [Unreleased]` still omits them.
 
 Keep a Changelog groups: `Added`, `Changed`, `Fixed`, `Removed`. English.
 The user-facing *why* / effect, not a file list. New notes go under
-`## [Unreleased]`. Do **not** bump the crate / `MODULE.bazel` version here:
+`## [Unreleased]`. Do **not** bump the crate version here:
 that is a release (`.claude/skills/versioning/SKILL.md`).
 
 If Unreleased already states the change, leave it. If it is stale or

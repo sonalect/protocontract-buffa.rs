@@ -3,9 +3,9 @@ name: Release
 # Runs only for a version tag, never for a plain commit:
 #   1. the tag must be annotated, point at a commit on main, carry release
 #      notes in its message (.claude/rules/release-tag.md), and match the
-#      version in Cargo.toml, MODULE.bazel, and CHANGELOG.md;
-#   2. on six platforms: the full `bazel build //...` and `bazel test //...`,
-#      then the plugin's static release binary built by Cargo; and, once,
+#      version in Cargo.toml and CHANGELOG.md;
+#   2. on six platforms: the gate, `mise run gate` (mise.toml), then the
+#      plugin's static release binary built by Cargo; and, once,
 #      the runtime and the generated code built and tested with the
 #      minimum Rust version (`rust-version` in Cargo.toml);
 #   3. when all of these pass, the GitHub Release for the tag: the six binaries
@@ -13,13 +13,7 @@ name: Release
 #      registry.bzl takes each platform's sha256 from it), titled with the tag message's subject, the
 #      message's body as notes.
 # A manual run (workflow_dispatch) is the dry run before tagging: steps 2
-# and 3 without the publish. Run on main, it also saves the Bazel caches.
-#
-# Bazel caches: only --disk_cache and --repository_cache (never the output
-# root, which holds a live server). A run may restore caches of its own ref
-# or of the default branch, never of another tag, so a tag run only
-# restores and the dry run on main saves; tagging right after that dry run
-# finds every key.
+# and 3 without the publish.
 on:
   push:
     tags:
@@ -34,7 +28,7 @@ permissions:
   contents: read
 
 env:
-  BAZELISK_VERSION: 1.29.0
+  MISE_VERSION: 2026.10.24
   PLUGIN: protoc-gen-protocontract-buffa
 
 defaults:
@@ -75,10 +69,8 @@ jobs:
             exit 1
           fi
           cargo_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
-          module_version="$(sed -n 's/^    version = "\(.*\)",$/\1/p' MODULE.bazel | head -n 1)"
-          echo "tag ${GITHUB_REF_NAME}, Cargo.toml ${cargo_version}, MODULE.bazel ${module_version}"
+          echo "tag ${GITHUB_REF_NAME}, Cargo.toml ${cargo_version}"
           test "${GITHUB_REF_NAME}" = "v${cargo_version}"
-          test "${module_version}" = "${cargo_version}"
           grep -q "^## \[${cargo_version}\]" CHANGELOG.md
 
   platform:
@@ -92,164 +84,45 @@ jobs:
         include:
           - platform: linux-amd64
             runner: ubuntu-26.04
-            bazelisk: bazelisk-linux-amd64
-            bazelisk_sha256: 5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
+            mise: linux-x64
+            mise_sha256: be97dbac1c0b1fe08bd8c0cf01690f4273ea9aa02ad766b98d4e20c43eb9059d
             target: x86_64-unknown-linux-musl
             file: linux-x86_64
           - platform: linux-arm64
             runner: ubuntu-26.04-arm
-            bazelisk: bazelisk-linux-arm64
-            bazelisk_sha256: e20e8b0f4f240091b7a55bf17b9398bd4f40ee70ae0208dff95dd4c445fb4010
+            mise: linux-arm64
+            mise_sha256: ae1151a87d70146119f68f7378001a12f09d2a38853087ed6139b7527a55f148
             target: aarch64-unknown-linux-musl
             file: linux-aarch64
           - platform: macos-amd64
             runner: macos-26-intel
-            bazelisk: bazelisk-darwin-amd64
-            bazelisk_sha256: 16c3d7aa15323a9fb69f56c7ec5733ed18bedb786680d0ba13bb12a3c8083007
+            mise: macos-x64
+            mise_sha256: 399e46f059f8ffa3f5a4321513996f13100f2bc2513e5464ba666ed4c117039a
             target: x86_64-apple-darwin
             file: darwin-x86_64
           - platform: macos-arm64
             runner: macos-26
-            bazelisk: bazelisk-darwin-arm64
-            bazelisk_sha256: cee851f726789227d5561004e9904a52be45c3efb56f8b38b6993d6adbaa0409
+            mise: macos-arm64
+            mise_sha256: ac0ee145cb145affe3ea60623a4abdb253e5ad1f938def299e633e816c0b8523
             target: aarch64-apple-darwin
             file: darwin-aarch64
           - platform: windows-amd64
             runner: windows-2025
-            bazelisk: bazelisk-windows-amd64.exe
-            bazelisk_sha256: 092a8738d5b41aae7a85c42cc961b1034e3389aba43ffc20c0fabda7b43e095b
+            mise: windows-x64.zip
+            mise_sha256: cfffec40ded67f1d04039eb388827ad8de0a0089d5c9d9abc57c6c85c0aedc71
             target: x86_64-pc-windows-msvc
             file: windows-x86_64.exe
             exe: .exe
           - platform: windows-arm64
             runner: windows-11-arm
-            bazelisk: bazelisk-windows-arm64.exe
-            bazelisk_sha256: 8bc42bd5d7857f18a21440b906469bb6c7cf91a7c72364d4b1e5ec56a76fe94f
+            mise: windows-arm64.zip
+            mise_sha256: c534719a9f00577ed928327424ec524d62f57c1a19c4cbbbe342fe691361cdf4
             target: aarch64-pc-windows-msvc
             file: windows-aarch64.exe
             exe: .exe
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install Bazelisk
-        run: |
-          set -euo pipefail
-          bin="${RUNNER_TEMP}/bin"
-          mkdir -p "${bin}"
-          curl -fsSL -o "${bin}/bazel${{ matrix.exe }}" \
-            "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/${{ matrix.bazelisk }}"
-          # By OS, not by what is on PATH: macOS ships a BSD `sha256sum`
-          # that does not read a checksum list from stdin.
-          if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            echo "${{ matrix.bazelisk_sha256 }}  ${bin}/bazel${{ matrix.exe }}" | shasum -a 256 -c
-          else
-            echo "${{ matrix.bazelisk_sha256 }}  ${bin}/bazel${{ matrix.exe }}" | sha256sum -c
-          fi
-          chmod +x "${bin}/bazel${{ matrix.exe }}"
-          if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            cygpath -w "${bin}" >> "${GITHUB_PATH}"
-          else
-            echo "${bin}" >> "${GITHUB_PATH}"
-          fi
-
-      # Bazel's C++ toolchain links Rust with lld when it finds one and
-      # falls back to gold, which rustc warns is deprecated and buggy.
-      # Ubuntu runners have gold and no lld.
-      - name: Install lld
-        if: runner.os == 'Linux'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lld
-          ld.lld --version
-
-      - name: Configure Bazel for Windows
-        if: runner.os == 'Windows'
-        run: |
-          set -euo pipefail
-          mkdir -p /c/b
-          # Git for Windows bash, for Bazel's shell actions.
-          echo "BAZEL_SH=C:/Program Files/Git/bin/bash.exe" >> "${GITHUB_ENV}"
-          {
-            # Short output root: external repository paths hit MAX_PATH
-            # under the runner's work directory.
-            echo "startup --output_user_root=C:/b"
-            echo "startup --windows_enable_symlinks"
-            echo "build --symlink_prefix=/"
-          } >> "${HOME}/.bazelrc"
-
-      - name: Configure Bazel caches
-        run: |
-          set -euo pipefail
-          # Outside the checkout: Bazel 9 refuses a repository cache inside
-          # the workspace.
-          disk="${RUNNER_TEMP}/bazel-disk"
-          repo="${RUNNER_TEMP}/bazel-repo"
-          mkdir -p "${disk}" "${repo}"
-          if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            disk="$(cygpath -m "${disk}")"
-            repo="$(cygpath -m "${repo}")"
-          fi
-          {
-            echo "common --disk_cache=${disk}"
-            echo "common --repository_cache=${repo}"
-          } >> "${HOME}/.bazelrc"
-
-      - name: Restore Bazel caches
-        id: bazel-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ${{ runner.temp }}/bazel-disk
-            ${{ runner.temp }}/bazel-repo
-          key: bazel-${{ matrix.platform }}-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'Cargo.lock') }}
-          restore-keys: |
-            bazel-${{ matrix.platform }}-
-
-      - name: Bazel build
-        run: bazel build //... --keep_going
-
-      # The tests below are named as well as matched by //...: Bazel skips
-      # an incompatible target of a pattern silently, but fails on a named
-      # one, so a platform that cannot build them fails instead of passing
-      # with nothing run.
-      - name: Bazel test
-        # Git Bash on Windows rewrites an argument that starts with `//` and
-        # has no other `/` as a Windows switch (`//proto:lint` -> `/proto:lint`).
-        env:
-          MSYS_NO_PATHCONV: "1"
-        run: |
-          bazel test //... --keep_going --test_output=errors \
-            //rust/protocontract:protocontract_no_tokio_test \
-            //rust/protocontract:protocontract_test \
-            //rust/golden:bridges_test \
-            //rust/golden:direct_test \
-            //rust/golden:streaming_test \
-            //rust/protoc-gen-protocontract-buffa:lib_test \
-            //proto:generate_test \
-            //examples/glossary:generate_test \
-            //proto:lint \
-            //rust:lint \
-            //rust:fmt \
-            //rust:vuln \
-            //bazel:lint \
-            //bazel:markdown
-
-      # Stopped before the caches are saved, so nothing writes them then.
-      - name: Stop Bazel
-        if: always()
-        continue-on-error: true
-        run: bazel shutdown || true
-
-      - name: Save Bazel caches
-        if: github.ref == 'refs/heads/main' && steps.bazel-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ${{ runner.temp }}/bazel-disk
-            ${{ runner.temp }}/bazel-repo
-          key: bazel-${{ matrix.platform }}-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'Cargo.lock') }}
 
       - name: Install Rust
         run: |
@@ -266,6 +139,54 @@ jobs:
               echo "${HOME}/.cargo/bin" >> "${GITHUB_PATH}"
             fi
           fi
+
+      # rust-toolchain.toml selects the toolchain and its components
+      # (clippy, rustfmt) for the gate.
+      - name: Install the toolchain
+        run: rustup toolchain install
+
+      - name: Install mise
+        run: |
+          set -euo pipefail
+          asset="mise-v${MISE_VERSION}-${{ matrix.mise }}"
+          dir="${RUNNER_TEMP}/mise"
+          mkdir -p "${dir}"
+          curl -fsSL -o "${dir}/${asset}" \
+            "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/${asset}"
+          # By OS, not by what is on PATH: macOS ships a BSD `sha256sum`
+          # that does not read a checksum list from stdin.
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            echo "${{ matrix.mise_sha256 }}  ${dir}/${asset}" | shasum -a 256 -c
+          else
+            echo "${{ matrix.mise_sha256 }}  ${dir}/${asset}" | sha256sum -c
+          fi
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            pwsh -NoProfile -Command "Expand-Archive -Path '$(cygpath -w "${dir}/${asset}")' -DestinationPath '$(cygpath -w "${dir}")'"
+            bin="$(dirname "$(find "${dir}" -name mise.exe | head -n 1)")"
+            cygpath -w "${bin}" >> "${GITHUB_PATH}"
+          else
+            mv "${dir}/${asset}" "${dir}/mise"
+            chmod +x "${dir}/mise"
+            echo "${dir}" >> "${GITHUB_PATH}"
+          fi
+
+      # Every tool at its version in mise.toml, checked against mise.lock.
+      # The token lifts GitHub's rate limit on the release downloads.
+      - name: Install the tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mise --version
+          mise trust
+          mise install --locked
+
+      # The task scripts run in bash: here, the bash of Git for Windows,
+      # first on PATH in a bash step.
+      - name: Gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: mise run gate
 
       # rust-toolchain.toml selects the toolchain; the target and, on
       # Windows, llvm-tools (for the static check) are added to it.
